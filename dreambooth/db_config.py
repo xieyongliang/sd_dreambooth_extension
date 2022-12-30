@@ -272,11 +272,8 @@ class DreamboothConfig:
         with open(config_file, "w") as outfile:
             json.dump(self.__dict__, outfile, indent=4)
 
-
-def save_config(*args):
-    config = DreamboothConfig(*args)
-    config.save()
-
+    def toJson(self):
+        return json.dumps(self, default=lambda o: o.__dict__)
 
 def from_file(model_name):
     """
@@ -348,5 +345,3 @@ def from_file(model_name):
         print(f"Exception loading config: {e}")
         traceback.print_exc()
         return None
-
-

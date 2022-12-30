@@ -16,6 +16,7 @@ from transformers import AutoTokenizer, CLIPTextModel
 from extensions.sd_dreambooth_extension.dreambooth.db_config import from_file
 from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import FilenameTextGetter, PromptDataset
 from modules import shared, paths
+import requests
 
 try:
     cmd_dreambooth_models_path = shared.cmd_opts.dreambooth_models_path
@@ -40,26 +41,44 @@ def printi(msg, params=None, log=True):
 
 
 def get_db_models():
-    model_dir = os.path.dirname(cmd_dreambooth_models_path) if cmd_dreambooth_models_path else paths.models_path
-    out_dir = os.path.join(model_dir, "dreambooth")
     output = []
-    if os.path.exists(out_dir):
-        dirs = os.listdir(out_dir)
-        for found in dirs:
-            if os.path.isdir(os.path.join(out_dir, found)):
-                output.append(found)
+    if shared.cmd_opts.pureui:
+        api_endpoint = os.environ['api_endpoint']
+        params = {'module': 'dreambooth'}
+        response = requests.get(url=f'{api_endpoint}/sd/models', params=params)
+        if response.status_code == 200:
+            items = json.loads(response.text)
+            for item in items:
+                output.append(item)
+    else:
+        model_dir = os.path.dirname(cmd_dreambooth_models_path) if cmd_dreambooth_models_path else paths.models_path
+        out_dir = os.path.join(model_dir, "dreambooth")
+        if os.path.exists(out_dir):
+            dirs = os.listdir(out_dir)
+            for found in dirs:
+                if os.path.isdir(os.path.join(out_dir, found)):
+                    output.append(found)
     return output
 
 
 def get_lora_models():
-    model_dir = os.path.dirname(cmd_lora_models_path) if cmd_lora_models_path else paths.models_path
-    out_dir = os.path.join(model_dir, "lora")
     output = [""]
-    if os.path.exists(out_dir):
-        dirs = os.listdir(out_dir)
-        for found in dirs:
-            if os.path.isfile(os.path.join(out_dir, found)):
-                output.append(found)
+    if shared.cmd_opts.pureui:
+        api_endpoint = os.environ['api_endpoint']
+        params = {'module': 'lora'}
+        response = requests.get(url=f'{api_endpoint}/sd/models', params=params)
+        if response.status_code == 200:
+            items = json.loads(response.text)
+            for item in items:
+                output.append(item)
+    else:
+        model_dir = os.path.dirname(cmd_lora_models_path) if cmd_lora_models_path else paths.models_path
+        out_dir = os.path.join(model_dir, "lora")
+        if os.path.exists(out_dir):
+            dirs = os.listdir(out_dir)
+            for found in dirs:
+                if os.path.isfile(os.path.join(out_dir, found)):
+                    output.append(found)
     return output
 
 

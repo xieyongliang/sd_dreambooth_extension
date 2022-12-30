@@ -11,11 +11,12 @@ import torch
 import torch.utils.checkpoint
 from diffusers.utils import logging as dl
 
-from extensions.sd_dreambooth_extension.dreambooth.db_config import from_file
+from extensions.sd_dreambooth_extension.dreambooth.db_config import from_file, DreamboothConfig
 from extensions.sd_dreambooth_extension.dreambooth.db_concept import Concept
 from extensions.sd_dreambooth_extension.dreambooth.utils import reload_system_models, unload_system_models, printm, \
     isset, list_features, is_image, get_images, get_lora_models
 from modules import shared, devices
+import requests
 
 try:
     cmd_dreambooth_models_path = shared.cmd_opts.dreambooth_models_path
@@ -31,14 +32,7 @@ dl.set_verbosity_error()
 
 mem_record = {}
 
-
-def training_wizard_person(model_dir):
-    return training_wizard(
-        model_dir,
-        is_person=True)
-
-
-def training_wizard(model_dir, is_person=False):
+def training_wizard(config, is_person=False):
     """
     Calculate the number of steps based on our learning rate, return the following:
     db_status,
@@ -51,15 +45,12 @@ def training_wizard(model_dir, is_person=False):
     c3_max_steps,
     c3_num_class_images
     """
-    if model_dir == "" or model_dir is None:
-        return "Please select a model.", 1000, -1, 0, -1, 0, -1, 0
-    # Load config, get total steps
-    config = from_file(model_dir)
 
     if config is None:
         status = "Unable to load config."
         return status, 0, 100, -1, 0, -1, 0, -1
     else:
+        print(vars(config))
         # Build concepts list using current settings
         concepts = config.concepts_list
 
@@ -113,6 +104,21 @@ def training_wizard(model_dir, is_person=False):
 
     return status, 0, step_mult, -1, c_list[0], -1, c_list[1], -1, c_list[2]
 
+def training_wizard_person(model_dir):
+    if model_dir == "" or model_dir is None:
+        return "Please select a model.", 1000, -1, 0, -1, 0, -1, 0
+    # Load config, get total steps
+    config = from_file(model_dir)
+
+    return training_wizard(config, is_person=True)
+
+def training_wizard_object(model_dir):
+    if model_dir == "" or model_dir is None:
+        return "Please select a model.", 1000, -1, 0, -1, 0, -1, 0
+    # Load config, get total steps
+    config = from_file(model_dir)
+
+    return training_wizard(config, is_person=False)
 
 def performance_wizard():
     attention = "xformers"
@@ -180,7 +186,6 @@ def performance_wizard():
         msg += f"<br>{key}: {log_dict[key]}"
     return msg, attention, gradient_checkpointing, mixed_precision, not_cache_latents, sample_batch_size, \
            train_batch_size, train_text_encoder, use_8bit_adam, use_cpu, use_ema
-
 
 def load_params(model_dir):
     data = from_file(model_dir)
@@ -293,7 +298,16 @@ def load_params(model_dir):
 
 
 def load_model_params(model_dir):
-    data = from_file(model_dir)
+    if shared.cmd_opts.pureui:
+        api_endpoint = os.environ['api_endpoint']
+        params = {'module': 'dreambooth_params', 'dreambooth_model': model_dir}
+        response = requests.get(url=f'{api_endpoint}/sd/models', params=params)
+        if response.status_code == 200:
+            data = json.loads(response.text)
+        else:
+            data = None
+    else:
+        data = from_file(model_dir)
     if data is None:
         print("Can't load config!")
         msg = f"Error loading config for model '{model_dir}'."
@@ -307,14 +321,19 @@ def load_model_params(model_dir):
                data.scheduler, \
                ""
 
-
 def start_training(model_dir: str, lora_model_name: str, lora_alpha: float, lora_txt_alpha: float, imagic_only: bool, use_subdir: bool, custom_model_name: str):
     global mem_record
     if model_dir == "" or model_dir is None:
         print("Invalid model name.")
         msg = "Create or select a model first."
         return msg, 0, msg
-    config = from_file(model_dir)
+
+    db_config = from_file(model_dir)
+
+    return start_training_from_config(db_config, lora_model_name, lora_alpha, lora_txt_alpha, imagic_only, use_subdir, custom_model_name)
+
+def start_training_from_config(config: DreamboothConfig, lora_model_name: str, lora_alpha: float, lora_txt_alpha: float, imagic_only: bool, use_subdir: bool, custom_model_name: str):
+    global mem_record
 
     # Clear pretrained VAE Name if applicable
     if config.pretrained_vae_name_or_path == "":

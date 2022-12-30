@@ -50,7 +50,7 @@ from diffusers import (
 from diffusers.pipelines.latent_diffusion.pipeline_latent_diffusion import LDMBertConfig, LDMBertModel
 from diffusers.pipelines.stable_diffusion import StableDiffusionSafetyChecker
 from transformers import AutoFeatureExtractor, BertTokenizerFast, CLIPTextModel, CLIPTokenizer
-
+import traceback
 
 def shave_segments(path, n_shave_prefix_segments=1):
     """
@@ -769,6 +769,7 @@ def extract_checkpoint(new_model_name: str, ckpt_path: str, scheduler_type="ddim
         # Try to determine if v1 or v2 model
         if not from_hub:
             printi("Loading model from checkpoint.")
+            print(ckpt_path)
             checkpoint_info = modules.sd_models.get_closet_checkpoint_match(ckpt_path)
 
             if checkpoint_info is None:
@@ -785,6 +786,7 @@ def extract_checkpoint(new_model_name: str, ckpt_path: str, scheduler_type="ddim
 
             printi("Loading checkpoint...")
             checkpoint = torch.load(ckpt_path)
+            print(checkpoint_info)
             # Todo: Decide if we should store this separately in the db_config and append it when re-compiling models.
             # global_step = checkpoint["global_step"]
             checkpoint = checkpoint["state_dict"] if "state_dict" in checkpoint else checkpoint
@@ -953,8 +955,11 @@ def extract_checkpoint(new_model_name: str, ckpt_path: str, scheduler_type="ddim
     except Exception as e:
         pipe = None
         status = f"Exception while extracting model: {e}"
+        traceback.print_exc()
 
     if pipe is None or db_config is None:
+        print(pipe)
+        print(db_config)
         print("Pipeline or config is not set, unable to continue.")
     else:
         printi("Saving diffusers model...")
@@ -978,14 +983,5 @@ def extract_checkpoint(new_model_name: str, ckpt_path: str, scheduler_type="ddim
     reload_system_models()
     printm(status, True)
     printi(status)
-    dirs = get_db_models()
 
-    return gr.Dropdown.update(choices=sorted(dirs), value=new_model_name), \
-        model_dir, \
-        revision, \
-        scheduler, \
-        src, \
-        "True" if has_ema else "False", \
-        "True" if v2 else "False", \
-        db_config.resolution, \
-        status
+    return new_model_name, model_dir, revision, scheduler, src, "True" if has_ema else "False", "True" if v2 else "False", db_config.resolution
