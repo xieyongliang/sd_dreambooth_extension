@@ -275,6 +275,11 @@ class DreamboothConfig:
     def toJson(self):
         return json.dumps(self, default=lambda o: o.__dict__)
 
+def save_config(*args):
+    config = DreamboothConfig(*args)
+    config.save()
+
+
 def from_file(model_name):
     """
     Load config data from UI
