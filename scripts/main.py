@@ -763,13 +763,13 @@ def build_concept_panel():
 
 def get_sd_models():
     api_endpoint = os.environ['api_endpoint']
-    names = []
+    names = set()
     if api_endpoint != '':
         response = requests.get(url=f'{api_endpoint}/sd/models')
         if response.status_code == 200:
             model_list = json.loads(response.text)
             for model in model_list:
-                names.append(model['title'])
-    return names
+                names.add(model['title'])
+    return list(names)
 
 script_callbacks.on_ui_tabs(on_ui_tabs)
