@@ -215,7 +215,7 @@ def on_ui_tabs():
             db_train_model = gr.Button(value="Train", variant='primary')
 
         with gr.Row(equal_height=True):
-            db_status = gr.TextArea(value="")
+            db_status = gr.Label(label='Output')
 
         db_create_from_hub.change(
             fn=lambda x: gr_show(x),
