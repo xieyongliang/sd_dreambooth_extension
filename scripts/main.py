@@ -270,6 +270,7 @@ def on_ui_tabs():
         )
 
         def sagemaker_train_dreambooth(
+            username,
             db_create_new_db_model,
             db_new_model_name,
             db_new_model_src,
@@ -539,7 +540,7 @@ def on_ui_tabs():
                 'train-args': json.dumps(json.dumps(train_args)),
                 'train-task': 'dreambooth',
                 'ckpt': '/opt/ml/input/data/models/{0}'.format(shared.sd_model.sd_model_name),
-                'username': shared.username,
+                'username': username,
                 'api-endpoint': shared.api_endpoint,
                 'dreambooth-config-id': dreambooth_config_id
             }
@@ -559,7 +560,6 @@ def on_ui_tabs():
                 'inputs': inputs
             }
 
-            print(data)
             response = requests.post(url=f'{shared.api_endpoint}/train', json=data)
             if response.status_code == 200:
                 return {
@@ -574,6 +574,7 @@ def on_ui_tabs():
         db_train_model.click(
             fn=sagemaker_train_dreambooth,
             inputs=[
+                shared.username_state,
                 db_create_new_db_model,
                 db_new_model_name,
                 db_new_model_src,
