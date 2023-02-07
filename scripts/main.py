@@ -210,12 +210,12 @@ def on_ui_tabs():
                             c3_class_infer_steps, c3_save_sample_negative_prompt, c3_n_save_sample, c3_sample_seed, \
                             c3_save_guidance_scale, c3_save_infer_steps = build_concept_panel()
 
-        with gr.Row(equal_height=True):
-            db_interrupt_training = gr.Button(value="Cancel")
-            db_train_model = gr.Button(value="Train", variant='primary')
+        with gr.Row():
+            with gr.Column(scale=3):
+                db_status = gr.Label(label='Output')
 
-        with gr.Row(equal_height=True):
-            db_status = gr.Label(label='Output')
+            with gr.Column():
+                shared.create_train_dreambooth_component = db_train_model = gr.Button(value="Train", variant='primary', visible=False)
 
         db_create_from_hub.change(
             fn=lambda x: gr_show(x),
@@ -703,12 +703,6 @@ def on_ui_tabs():
             outputs=[
                 db_status
             ]
-        )
-
-        db_interrupt_training.click(
-            fn=lambda: shared.state.interrupt(),
-            inputs=[],
-            outputs=[],
         )
 
     return (dreambooth_interface, "Dreambooth", "dreambooth_interface"),
