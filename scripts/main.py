@@ -11,18 +11,28 @@ import uuid
 
 training_instance_types = [
     'ml.p2.xlarge',
-        'ml.p2.8xlarge',
-        'ml.p2.16xlarge',
-        'ml.p3.2xlarge',
-        'ml.p3.8xlarge',
-        'ml.p3.16xlarge',
-        'ml.g4dn.xlarge',
-        'ml.g4dn.2xlarge',
-        'ml.g4dn.4xlarge',
-        'ml.g4dn.8xlarge',
-        'ml.g4dn.12xlarge',
-        'ml.g4dn.16xlarge'
-    ]
+    'ml.p2.8xlarge',
+    'ml.p2.16xlarge',
+    'ml.p3.2xlarge',
+    'ml.p3.8xlarge',
+    'ml.p3.16xlarge',
+    'ml.g4dn.xlarge',
+    'ml.g4dn.2xlarge',
+    'ml.g4dn.4xlarge',
+    'ml.g4dn.8xlarge',
+    'ml.g4dn.12xlarge',
+    'ml.g4dn.16xlarge',
+    'ml.g5.xlarge',
+    'ml.g5.xlarge',
+    'ml.g5.2xlarge',
+    'ml.g5.4xlarge',
+    'ml.g5.8xlarge',
+    'ml.g5.12xlarge',
+    'ml.g5.16xlarge',
+    'ml.g5.24xlarge',
+    'ml.g5.48xlarge',
+    'ml.p4d.24xlarge'
+]
 
 def on_ui_tabs():
     with gr.Blocks() as dreambooth_interface:
@@ -539,7 +549,6 @@ def on_ui_tabs():
             hyperparameters = {
                 'train-args': json.dumps(json.dumps(train_args)),
                 'train-task': 'dreambooth',
-                'ckpt': '/opt/ml/input/data/models/{0}'.format(shared.sd_model.sd_model_name),
                 'username': username,
                 'api-endpoint': shared.api_endpoint,
                 'dreambooth-config-id': dreambooth_config_id
