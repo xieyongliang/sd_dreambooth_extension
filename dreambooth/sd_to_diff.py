@@ -770,7 +770,7 @@ def extract_checkpoint(new_model_name: str, ckpt_path: str, scheduler_type="ddim
         if not from_hub:
             printi("Loading model from checkpoint.")
             print(ckpt_path)
-            checkpoint_info = modules.sd_models.get_closet_checkpoint_match_from_model_name(ckpt_path)
+            checkpoint_info = modules.sd_models.get_closet_checkpoint_match(ckpt_path)
 
             if checkpoint_info is None:
                 print("Unable to find checkpoint file!")
