@@ -769,11 +769,12 @@ def get_sd_models():
     api_endpoint = os.environ['api_endpoint']
     names = set()
     if api_endpoint != '':
-        response = requests.get(url=f'{api_endpoint}/sd/models')
+        params = {'module': 'sd_models'}
+        response = requests.get(url=f'{api_endpoint}/sd/models', params=params)
         if response.status_code == 200:
             model_list = json.loads(response.text)
             for model in model_list:
-                names.add(model['title'])
+                names.add(model)
     return list(names)
 
 script_callbacks.on_ui_tabs(on_ui_tabs)
