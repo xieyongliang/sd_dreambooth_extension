@@ -224,7 +224,7 @@ def on_ui_tabs():
                 db_status = gr.Label(label='Output')
 
             with gr.Column():
-                shared.create_train_dreambooth_component = db_train_model = gr.Button(value="Train", variant='primary', visible=False)
+                shared.create_train_dreambooth_component = db_train_model = gr.Button(value="Train", variant='primary')
 
         db_create_from_hub.change(
             fn=lambda x: gr_show(x),
@@ -279,7 +279,6 @@ def on_ui_tabs():
         )
 
         def sagemaker_train_dreambooth(
-            username,
             db_create_new_db_model,
             db_new_model_name,
             db_new_model_src,
@@ -403,8 +402,17 @@ def on_ui_tabs():
             c3_save_infer_steps,
             c3_save_sample_negative_prompt,
             c3_save_sample_prompt,
-            c3_save_sample_template
+            c3_save_sample_template,
+            request : gr.Request
         ):
+            tokens = shared.demo.server_app.tokens
+            cookies = request.headers['cookie'].split('; ')
+            access_token = None
+            for cookie in cookies:
+                if cookie.startswith('access-token'):
+                    access_token = cookie[len('access-token=') : ]
+                    break
+            username = tokens[access_token] if access_token else None
 
             db_config = [
                 db_model_name,
@@ -582,7 +590,6 @@ def on_ui_tabs():
         db_train_model.click(
             fn=sagemaker_train_dreambooth,
             inputs=[
-                shared.username_state,
                 db_create_new_db_model,
                 db_new_model_name,
                 db_new_model_src,
