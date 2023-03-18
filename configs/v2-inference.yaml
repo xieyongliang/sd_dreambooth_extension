@@ -7,8 +7,8 @@ model:
     num_timesteps_cond: 1
     log_every_t: 200
     timesteps: 1000
-    first_stage_key: "jpg"
-    cond_stage_key: "txt"
+    first_stage_key: "image"
+    cond_stage_key: "caption"
     image_size: 64
     channels: 4
     cond_stage_trainable: false
@@ -50,12 +50,12 @@ model:
           out_ch: 3
           ch: 128
           ch_mult:
-          - 1
-          - 2
-          - 4
-          - 4
+            - 1
+            - 2
+            - 4
+            - 4
           num_res_blocks: 2
-          attn_resolutions: []
+          attn_resolutions: [ ]
           dropout: 0.0
         lossconfig:
           target: torch.nn.Identity

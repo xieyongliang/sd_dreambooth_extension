@@ -1,15 +1,14 @@
 import os
 import random
+from typing import List
 
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
-from pathlib import Path
 
 from extensions.sd_dreambooth_extension.dreambooth.db_concept import Concept
-from extensions.sd_dreambooth_extension.dreambooth.utils import list_features, is_image, get_images
-from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import FilenameTextGetter
+from extensions.sd_dreambooth_extension.dreambooth.utils import get_images
 from modules import images
 
 
@@ -31,12 +30,11 @@ class TrainingData:
 
 
 class ConceptData:
-    def __init__(self, name: str, max_steps: int, instance_images: [TrainingData], class_images: [TrainingData],
-                 sample_prompts: [str], concept: Concept):
+    def __init__(self, name: str, instance_images: [TrainingData], class_images: [TrainingData],
+                 sample_prompts: List[str], concept: Concept):
         """
         A class for holding all the info on a concept without needing a bunch of different dictionaries and stuff
         @param name: Token for our subject.
-        @param max_steps: Maximum lifetime training steps remaining
         @param instance_images: A list of instance images or whatever
         @param class_images: A list of class images and prompts
         @param sample_prompts: A list of sample prompts
@@ -44,7 +42,6 @@ class ConceptData:
         self.name = name
         self.instance_images = instance_images
         self.class_images = class_images
-        self.max_steps = max_steps
         self.sample_prompts = sample_prompts
         self.concept = concept
         self.instance_indices = []
@@ -105,6 +102,7 @@ class SuperDataset(Dataset):
             lifetime_steps=-1,
             shuffle_tags=False
     ):
+        from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import FilenameTextGetter
         self.concepts = []
         self.size = size
         self.center_crop = center_crop
@@ -115,8 +113,8 @@ class SuperDataset(Dataset):
         self.text_getter = FilenameTextGetter(shuffle_tags)
         self.lifetime_steps = lifetime_steps
         self.current_concept = 0
-
-        pil_features = list_features()
+        self.shuffle_tags = shuffle_tags
+        needs_crop = False
         total_images = 0
 
         for concept_dict in concepts_list:
@@ -135,34 +133,36 @@ class SuperDataset(Dataset):
             else:
                 concept_key = images.sanitize_filename_part(instance_prompt)
 
-            # Determine the max steps for the concept
-            max_steps = concept.max_steps
-
-            if concept.max_steps > 0:
-                max_steps = concept.max_steps
-                # Ensure we don't over-train our concept
-                if lifetime_steps >= max_steps:
-                    max_steps = 0
-                else:
-                    max_steps -= lifetime_steps
-
-            # Only append things to the dict if we still want to train them
-            if max_steps > 0 or max_steps == -1:
-                instance_data = []
-                concept_images = get_images(concept.instance_data_dir)
-                for file in concept_images:
-                    file_text = self.text_getter.read_text(file)
-                    file_prompt = self.text_getter.create_text(instance_prompt, file_text, instance_token,
-                                                               class_token, False)
-                    prompt_tokens = self.tokenize(file_prompt)
-                    instance_data.append(TrainingData(file, file_prompt, prompt_tokens))
+            instance_data = []
+            concept_images = get_images(concept.instance_data_dir)
+            for file in concept_images:
+                try:
+                    img = Image.open(file)
+                    if img.width != size or img.height != size:
+                        needs_crop = True
+                except Exception as e:
+                    print(f"Exception parsing instance image: {e}")
+                    continue
+                file_text = self.text_getter.read_text(file)
+                file_prompt = self.text_getter.create_text(instance_prompt, file_text, instance_token,
+                                                           class_token, False)
+                prompt_tokens = self.tokenize(file_prompt)
+                instance_data.append(TrainingData(file, file_prompt, prompt_tokens))
                 # Create a dictionary for each concept, one with the images, and another with the max training steps
                 random.shuffle(instance_data)
 
                 class_data = []
                 if concept_with_prior:
                     concept_images = get_images(concept.class_data_dir)
-                    for file in concept_images:
+                    for concept_file in concept_images:
+                        try:
+                            img = Image.open(concept_file)
+                            if img.width != size or img.height != size:
+                                needs_crop = True
+                        except Exception as e:
+                            print(f"Exception parsing instance image: {e}")
+                            continue
+
                         file_text = self.text_getter.read_text(file)
                         file_prompt = self.text_getter.create_text(class_prompt, file_text, instance_token,
                                                                    class_token, True)
@@ -175,27 +175,30 @@ class SuperDataset(Dataset):
 
                 # Generate sample prompts for concept
                 samples = self.generate_sample_prompts(instance_data, concept)
-
+                print(f"Concept {concept_key} has {len(samples)} sample prompts.")
                 # One pretty wrapper for the whole concept
-                concept_data = ConceptData(concept_key, max_steps, instance_data, class_data, samples, concept)
+                concept_data = ConceptData(concept_key, instance_data, class_data, samples, concept)
                 self.concepts.append(concept_data)
                 total_images += concept_data.length
 
         # We do this above when creating the dict of instance images
         self._length = total_images
+        transforms_list = []
 
-        self.image_transforms = transforms.Compose(
-            [
-                transforms.RandomHorizontalFlip(0.5 * hflip),
-                transforms.Resize(size, interpolation=transforms.InterpolationMode.BILINEAR),
-                transforms.CenterCrop(size) if center_crop else transforms.RandomCrop(size),
-                transforms.ToTensor(),
-                transforms.Normalize([0.5], [0.5]),
-            ]
-        )
+        if hflip:
+            transforms_list.append(transforms.RandomHorizontalFlip(0.5 * hflip))
 
-    @staticmethod
-    def generate_sample_prompts(instance_data: [TrainingData], concept: Concept):
+        if needs_crop:
+            transforms_list.append(transforms.CenterCrop(size) if center_crop else transforms.RandomCrop(size))
+            transforms_list.append(transforms.Resize(size, interpolation=transforms.InterpolationMode.BILINEAR))
+
+        transforms_list.append(transforms.ToTensor())
+        transforms_list.append(transforms.Normalize([0.5], [0.5]))
+
+        # Less transforms should be more better, right?
+        self.image_transforms = transforms.Compose(transforms_list)
+
+    def generate_sample_prompts(self, instance_data: [TrainingData], concept: Concept):
         prompts = []
         # Try populating prompts from template file if specified
         if concept.save_sample_template != "":
@@ -218,14 +221,22 @@ class SuperDataset(Dataset):
                 for replace in to_replace:
                     if replace in prompt:
                         prompt = prompt.replace(replace, f"{concept.instance_token} {concept.class_token}")
+                if "," in prompt and self.shuffle_tags:
+                    prompt_tags = prompt.split(",")
+                    first_tag = prompt_tags.pop(0)
+                    # Shuffle tags in sample prompt
+                    if len(prompt_tags) > 1:
+                        random.shuffle(prompt_tags)
+                        prompt_tags.insert(0, first_tag)
                 out_prompts.append(prompt)
             prompts = out_prompts
+            random.shuffle(prompts)
         return prompts
 
     def tokenize(self, text):
         if not self.pad_tokens:
-            input_ids = self.tokenizer(text, padding="do_not_pad", truncation=True,
-                                       max_length=self.tokenizer.model_max_length).input_ids
+            input_ids = self.tokenizer(text, padding="max_length", truncation=True,
+                                       max_length=self.tokenizer.model_max_length, return_tensors="pt").input_ids
             return input_ids
 
         input_ids = self.tokenizer(text, padding="max_length", truncation=True, max_length=self.tokenizer_max_length,
@@ -233,14 +244,34 @@ class SuperDataset(Dataset):
         if self.tokenizer_max_length > self.tokenizer.model_max_length:
             input_ids = input_ids.squeeze(0)
             iids_list = []
-            for i in range(1, self.tokenizer_max_length - self.tokenizer.model_max_length + 2,
-                           self.tokenizer.model_max_length - 2):
-                iid = (input_ids[0].unsqueeze(0),
-                       input_ids[i:i + self.tokenizer.model_max_length - 2],
-                       input_ids[-1].unsqueeze(0))
-                iid = torch.cat(iid)
-                iids_list.append(iid)
-            input_ids = torch.stack(iids_list)  # 3,77
+            # v1
+            if self.tokenizer.pad_token_id == self.tokenizer.eos_token_id:
+                for i in range(1, self.tokenizer_max_length - self.tokenizer.model_max_length + 2, self.tokenizer.model_max_length - 2):  # (1, 152, 75)
+                    ids_chunk = (
+                        input_ids[0].unsqueeze(0),
+                        input_ids[i: i + self.tokenizer.model_max_length - 2],
+                        input_ids[-1].unsqueeze(0),
+                    )
+                    ids_chunk = torch.cat(ids_chunk)
+                    iids_list.append(ids_chunk)
+            else:
+                # v2
+                for i in range(1, self.tokenizer_max_length - self.tokenizer.model_max_length + 2, self.tokenizer.model_max_length - 2):
+                    ids_chunk = (
+                        input_ids[0].unsqueeze(0),  # BOS
+                        input_ids[i: i + self.tokenizer.model_max_length - 2],
+                        input_ids[-1].unsqueeze(0),
+                    )
+                    ids_chunk = torch.cat(ids_chunk)
+
+                    if ids_chunk[-2] != self.tokenizer.eos_token_id and ids_chunk[-2] != self.tokenizer.pad_token_id:
+                        ids_chunk[-1] = self.tokenizer.eos_token_id
+
+                    if ids_chunk[1] == self.tokenizer.pad_token_id:
+                        ids_chunk[1] = self.tokenizer.eos_token_id
+                    iids_list.append(ids_chunk)
+
+            input_ids = torch.stack(iids_list)
 
         return input_ids
 
@@ -274,27 +305,17 @@ class SuperDataset(Dataset):
             example["class_prompt"] = class_data.prompt
             example["class_prompt_ids"] = class_data.tokens
 
-        # Here's where the "Super" comes in.
-        if concept_data.max_steps != -1:
-            concept_data.max_steps -= 1
-            if concept_data.max_steps <= 0:
-                print(f" Popping concept: {concept_data.name}")
-                concept_len = concept_data.length
-                self.concepts.remove(concept_data)
-                self._length -= concept_len
-
         # Rotate to the next concept
         self.current_concept += 1
         if self.current_concept >= len(self.concepts):
             self.current_concept = 0
         return example
 
-    def get_sample_prompts(self) -> SampleData:
+    def get_sample_prompts(self) -> [SampleData]:
         prompts = []
         for concept in self.concepts:
-            s_data = SampleData(concept.get_sample_prompt(), concept.concept)
-            prompts.append(s_data)
+            for n in range(concept.concept.n_save_sample):
+                s_data = SampleData(concept.get_sample_prompt(), concept.concept)
+                prompts.append(s_data)
+        random.shuffle(prompts)
         return prompts
-    
-    
-
