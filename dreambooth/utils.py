@@ -87,12 +87,11 @@ def get_lora_models():
 
 def get_model_snapshots(model_name: str):
     from extensions.sd_dreambooth_extension.dreambooth.db_config import from_file
-    result = gradio.update(visible=True)
+    snaps = []
     if model_name == "" or model_name is None:
-        return result
+        return snaps
     config = from_file(model_name)
     snaps_path = os.path.join(config.model_dir, "snapshots")
-    snaps = []
     if os.path.exists(snaps_path):
         for dir in os.listdir(snaps_path):
             if "checkpoint_" in dir:

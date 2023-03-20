@@ -3,17 +3,12 @@ from typing import List
 
 import gradio as gr
 
-from extensions.sd_dreambooth_extension.dreambooth.db_config import save_config, from_file
+from extensions.sd_dreambooth_extension.dreambooth.db_config import from_file, save_keys
 from extensions.sd_dreambooth_extension.dreambooth.db_shared import status
-from extensions.sd_dreambooth_extension.dreambooth.db_webhook import save_and_test_webhook
 from extensions.sd_dreambooth_extension.dreambooth.diff_to_sd import compile_checkpoint
-from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import generate_prompts
-from extensions.sd_dreambooth_extension.dreambooth.secret import get_secret, create_secret, clear_secret
 from extensions.sd_dreambooth_extension.dreambooth.utils import get_db_models, list_attention, \
-    list_floats, get_lora_models, wrap_gpu_call, parse_logs, printm
-from extensions.sd_dreambooth_extension.scripts import dreambooth
-from extensions.sd_dreambooth_extension.scripts.dreambooth import performance_wizard, \
-    training_wizard, training_wizard_person, load_model_params, ui_classifiers, ui_samples, debug_buckets, create_model
+    list_floats, get_lora_models, printm
+from extensions.sd_dreambooth_extension.scripts.dreambooth import load_model_params
 from modules import script_callbacks, shared
 from modules.ui import gr_show, create_refresh_button
 import json
@@ -663,7 +658,7 @@ def on_ui_tabs():
                     break
             username = tokens[access_token] if access_token else None
 
-            db_config = [
+            params_to_save = [
                 db_model_name,
                 db_attention,
                 db_cache_latents,
@@ -729,7 +724,6 @@ def on_ui_tabs():
                 db_snapshot,
                 db_train_batch_size,
                 db_train_imagic_only,
-                db_use_txt2img,
                 db_train_unet,         
                 db_stop_text_encoder,
                 db_use_8bit_adam,
@@ -814,7 +808,8 @@ def on_ui_tabs():
 
             dreambooth_config_id = str(uuid.uuid4())
             params = {'dreambooth_config_id': dreambooth_config_id}
-            response = requests.post(url=f'{shared.api_endpoint}/sd/models', json=db_config, params=params)
+            params_dict = dict(zip(save_keys, params_to_save))
+            response = requests.post(url=f'{shared.api_endpoint}/sd/models', json=params_dict, params=params)
 
             if response.status_code != 200:
                 return {
@@ -824,6 +819,7 @@ def on_ui_tabs():
             train_args = {
                 'train_dreambooth_settings': {
                     'db_create_new_db_model': db_create_new_db_model,
+                    'db_use_txt2img': db_use_txt2img,
                     'db_new_model_name': db_new_model_name,
                     'db_new_model_src': db_new_model_src,
                     'db_new_model_scheduler': db_new_model_scheduler,

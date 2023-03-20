@@ -1134,17 +1134,9 @@ def extract_checkpoint(new_model_name: str, checkpoint_file: str, scheduler_type
         db_config.v2 = v2
         if from_hub:
             result_status = "Model fetched from hub."
+            print(result_status)
             db_config.save()
-            return gr.Dropdown.update(choices=sorted(get_db_models()), value=new_model_name), \
-                db_config.model_dir, \
-                revision, \
-                epoch, \
-                db_config.scheduler, \
-                db_config.src, \
-                "True" if has_ema else "False", \
-                "True" if v2 else "False", \
-                db_config.resolution, \
-                result_status
+            return new_model_name, db_config.model_dir, revision, epoch, db_config.scheduler, db_config.src, "True" if has_ema else "False", "True" if v2 else "False", db_config.resolution
 
         print(f"{'v2' if v2 else 'v1'} model loaded.")
 

@@ -23,7 +23,7 @@ from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import ImageBu
 from extensions.sd_dreambooth_extension.dreambooth.prompt_data import PromptData
 from extensions.sd_dreambooth_extension.dreambooth.sd_to_diff import extract_checkpoint
 from extensions.sd_dreambooth_extension.dreambooth.utils import reload_system_models, unload_system_models, get_images, \
-    get_lora_models, cleanup, get_checkpoint_match, printm
+    cleanup, get_checkpoint_match, printm
 from modules import shared
 
 try:
@@ -77,22 +77,6 @@ def training_wizard(db_config, is_person=False):
     print(w_status)
 
     return int(step_mult), class_count, class_count, class_count, class_count, w_status
-
-def training_wizard_person(model_dir):
-    if model_dir == "" or model_dir is None:
-        return 100, 0, 0, 0, 0, "Please select a model."
-    # Load config, get total steps
-    config = from_file(model_dir)
-
-    return training_wizard(config, is_person=True)
-
-def training_wizard_object(model_dir):
-    if model_dir == "" or model_dir is None:
-        return 100, 0, 0, 0, 0, "Please select a model."
-    # Load config, get total steps
-    config = from_file(model_dir)
-
-    return training_wizard(config, is_person=False)
 
 def largest_prime_factor(n):
     # Special case for n = 2
@@ -259,9 +243,10 @@ def performance_wizard(model_name):
                 "Text Encoder Ratio": stop_text_encoder, "8Bit Adam": use_8bit_adam, "EMA": use_ema, "LORA": use_lora}
     for key in log_dict:
         msg += f"<br>{key}: {log_dict[key]}"
+    print(msg)
     return attention, gradient_checkpointing, gradient_accumulation_steps, mixed_precision, cache_latents, \
         sample_batch_size, train_batch_size, stop_text_encoder, use_8bit_adam, use_lora, use_ema, save_samples_every,\
-        save_weights_every, msg
+        save_weights_every
 
 
 
@@ -447,8 +432,7 @@ def start_training_from_config(config: DreamboothConfig, use_txt2img: bool = Tru
 
     if msg:
         print(msg)
-        lora_model_name = gradio.update(visible=True)
-        return lora_model_name, 0, 0, [], msg
+        return 0, 0, [], msg
     status.begin()
     # Clear memory and do "stuff" only after we've ensured all the things are right
     if config.custom_model_name:
@@ -493,8 +477,7 @@ def start_training_from_config(config: DreamboothConfig, use_txt2img: bool = Tru
     reload_system_models()
     if config.lora_model_name != "" and config.lora_model_name is not None:
         lora_model_name = f"{config.model_name}_{total_steps}.pt"
-    dirs = get_lora_models()
-    lora_model_name = gradio.Dropdown.update(choices=sorted(dirs), value=config.lora_model_name)
+    lora_model_name = config.lora_model_name
     return lora_model_name, total_steps, config.epoch, images, res
 
 

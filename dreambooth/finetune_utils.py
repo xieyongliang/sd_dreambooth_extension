@@ -483,7 +483,7 @@ class ImageBuilder:
             new_model_info = get_checkpoint_match(config.src)
             if new_model_info is not None and current_model is not None:
 
-                if isinstance(new_model_info, sd_models.CheckpointInfo) and new_model_info.sha256 != current_model.sha256:
+                if isinstance(new_model_info, sd_models.CheckpointInfo) and new_model_info.hash != current_model.hash:
                     self.last_model = current_model
                     print(f"Loading model: {new_model_info.model_name}")
                     sd_models.load_model(new_model_info)
