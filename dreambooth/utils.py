@@ -1,22 +1,35 @@
+from __future__ import annotations
+
 import gc
-import json
+import hashlib
+import html
 import os
-import random
+import sys
 import traceback
 from io import StringIO
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union, Tuple, List
 
+import matplotlib
+import pandas as pd
+from pandas.plotting._matplotlib.style import get_standard_colors
+from tqdm.auto import tqdm
+from transformers import PretrainedConfig
+
+from extensions.sd_dreambooth_extension.dreambooth.prompt_data import PromptData
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow
 import torch
-from PIL import features
-from diffusers import StableDiffusionPipeline, EulerAncestralDiscreteScheduler
+from PIL import features, Image, PngImagePlugin
 from huggingface_hub import HfFolder, whoami
-from transformers import AutoTokenizer, CLIPTextModel
+from pandas import DataFrame
+from tensorboard.compat.proto import event_pb2
 
-from extensions.sd_dreambooth_extension.dreambooth.db_config import from_file
-from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import FilenameTextGetter, PromptDataset
-from modules import shared, paths
+from extensions.sd_dreambooth_extension.dreambooth.db_shared import status
+from modules import shared, paths, sd_models
 import requests
+import json
 
 try:
     cmd_dreambooth_models_path = shared.cmd_opts.dreambooth_models_path

@@ -220,8 +220,9 @@ def on_ui_tabs():
                         gr.HTML(value="<p style='margin-bottom: 1.5em'><b>Create new model</b></p>")
 
                         db_new_model_name = gr.Textbox(label="Name")
-                        db_create_from_hub = gr.Checkbox(label="Create From Hub", value=False)
-                        db_512_model = gr.Checkbox(label="512x Model", value=True)
+                        with gr.Row():
+                            db_create_from_hub = gr.Checkbox(label="Create From Hub", value=False)
+                            db_512_model = gr.Checkbox(label="512x Model", value=True)
                         with gr.Row(visible=False) as hub_row:
                             db_new_model_url = gr.Textbox(label="Model Path", placeholder="runwayml/stable-diffusion-v1-5")
                             db_new_model_token = gr.Textbox(label="HuggingFace Token", value="")
@@ -254,63 +255,64 @@ def on_ui_tabs():
                         db_concepts_s3uri = gr.Textbox(label='Concepts S3 URI')
                         db_models_s3uri = gr.Textbox(label='Models S3 URI')
 
-                    with gr.Column():
-                        gr.HTML(value="General")
-                        db_use_lora = gr.Checkbox(label="Use LORA", value=False)
-                        db_train_imagic_only = gr.Checkbox(label="Train Imagic Only", value=False)
-                        db_use_txt2img = gr.Checkbox(label="Generate Classification Images Using txt2img", value=True)
-                        db_graph_smoothing = gr.Number(value=50, label="Graph Smoothing Steps")
-    
-                    with gr.Column():
-                        gr.HTML(value="Intervals")
-                        db_num_train_epochs = gr.Number(label="Training Steps Per Image (Epochs)", precision=0, value=100)
-                        db_epoch_pause_frequency = gr.Number(label='Pause After N Epochs', value=0)
-                        db_epoch_pause_time = gr.Number(label='Amount of time to pause between Epochs (s)', value=60)
-                        db_save_embedding_every = gr.Number(label='Save Model Frequency (Epochs)', value=25, precision=0)
-                        db_save_preview_every = gr.Number(label='Save Preview(s) Frequency (Epochs)', value=5, precision=0)
+                    with gr.Accordion(open=True, label="Basic"):
+                        with gr.Column():
+                            gr.HTML(value="General")
+                            db_use_lora = gr.Checkbox(label="Use LORA", value=False)
+                            db_train_imagic_only = gr.Checkbox(label="Train Imagic Only", value=False)
+                            db_use_txt2img = gr.Checkbox(label="Generate Classification Images Using txt2img", value=True)
+                            db_graph_smoothing = gr.Number(value=50, label="Graph Smoothing Steps")
 
-                    with gr.Column():
-                        gr.HTML(value="Batching")
-                        db_train_batch_size = gr.Number(label="Batch Size", precision=0, value=1)
-                        db_gradient_accumulation_steps = gr.Number(label="Gradient Accumulation Steps", precision=0, value=1)
-                        db_sample_batch_size = gr.Number(label="Class Batch Size", precision=0, value=1)
-                        db_gradient_set_to_none = gr.Checkbox(label="Set Gradients to None When Zeroing", value=True)
-                        db_gradient_checkpointing = gr.Checkbox(label="Gradient Checkpointing", value=True)
+                        with gr.Column():
+                            gr.HTML(value="Intervals")
+                            db_num_train_epochs = gr.Number(label="Training Steps Per Image (Epochs)", precision=0, value=100)
+                            db_epoch_pause_frequency = gr.Number(label='Pause After N Epochs', value=0)
+                            db_epoch_pause_time = gr.Number(label='Amount of time to pause between Epochs (s)', value=60)
+                            db_save_embedding_every = gr.Number(label='Save Model Frequency (Epochs)', value=25, precision=0)
+                            db_save_preview_every = gr.Number(label='Save Preview(s) Frequency (Epochs)', value=5, precision=0)
 
-                    schedulers = ["linear", "linear_with_warmup", "cosine", "cosine_annealing",
-                                "cosine_annealing_with_restarts", "cosine_with_restarts", "polynomial",
-                                "constant", "constant_with_warmup"]
+                        with gr.Column():
+                            gr.HTML(value="Batching")
+                            db_train_batch_size = gr.Number(label="Batch Size", precision=0, value=1)
+                            db_gradient_accumulation_steps = gr.Number(label="Gradient Accumulation Steps", precision=0, value=1)
+                            db_sample_batch_size = gr.Number(label="Class Batch Size", precision=0, value=1)
+                            db_gradient_set_to_none = gr.Checkbox(label="Set Gradients to None When Zeroing", value=True)
+                            db_gradient_checkpointing = gr.Checkbox(label="Gradient Checkpointing", value=True)
 
-                    with gr.Column():
-                        gr.HTML(value="Learning Rate")
-                        db_lr_scheduler = gr.Dropdown(label="Learning Rate Scheduler", value="constant_with_warmup",
-                                                        choices=schedulers)
+                        schedulers = ["linear", "linear_with_warmup", "cosine", "cosine_annealing",
+                                    "cosine_annealing_with_restarts", "cosine_with_restarts", "polynomial",
+                                    "constant", "constant_with_warmup"]
 
-                        db_learning_rate = gr.Number(label='Learning Rate', value=2e-6)
-                        db_learning_rate_min = gr.Number(label='Min Learning Rate', value=1e-6, visible=False)
-                        db_lr_cycles = gr.Number(label="Number of Hard Resets", value=1, precision=0, visible=False)
-                        db_lr_factor = gr.Number(label="Constant/Linear Starting Factor", value=0.5, precision=2, visible=False)
-                        db_lr_power = gr.Number(label="Polynomial Power", value=1.0, precision=1, visible=False)
-                        db_lr_scale_pos = gr.Slider(label="Scale Position", value=0.5, minimum=0, maximum=1, step=0.05, visible=False)
-                        with gr.Row(visible=False) as lora_lr_row:
-                            db_lora_learning_rate = gr.Number(label='Lora UNET Learning Rate', value=2e-4)
-                            db_lora_txt_learning_rate = gr.Number(label='Lora Text Encoder Learning Rate', value=2e-4)
-                        db_lr_warmup_steps = gr.Number(label="Learning Rate Warmup Steps", precision=0, value=0)
+                        with gr.Column():
+                            gr.HTML(value="Learning Rate")
+                            db_lr_scheduler = gr.Dropdown(label="Learning Rate Scheduler", value="constant_with_warmup",
+                                                            choices=schedulers)
+
+                            db_learning_rate = gr.Number(label='Learning Rate', value=2e-6)
+                            db_learning_rate_min = gr.Number(label='Min Learning Rate', value=1e-6, visible=False)
+                            db_lr_cycles = gr.Number(label="Number of Hard Resets", value=1, precision=0, visible=False)
+                            db_lr_factor = gr.Number(label="Constant/Linear Starting Factor", value=0.5, precision=2, visible=False)
+                            db_lr_power = gr.Number(label="Polynomial Power", value=1.0, precision=1, visible=False)
+                            db_lr_scale_pos = gr.Slider(label="Scale Position", value=0.5, minimum=0, maximum=1, step=0.05, visible=False)
+                            with gr.Row(visible=False) as lora_lr_row:
+                                db_lora_learning_rate = gr.Number(label='Lora UNET Learning Rate', value=2e-4)
+                                db_lora_txt_learning_rate = gr.Number(label='Lora Text Encoder Learning Rate', value=2e-4)
+                            db_lr_warmup_steps = gr.Number(label="Learning Rate Warmup Steps", precision=0, value=0)
 
 
-                    with gr.Column():
-                        gr.HTML(value="Image Processing")
-                        db_resolution = gr.Number(label="Resolution", precision=0, value=512)
-                        db_center_crop = gr.Checkbox(label="Center Crop", value=False)
-                        db_hflip = gr.Checkbox(label="Apply Horizontal Flip", value=False)
-                        db_sanity_prompt = gr.Textbox(label="Sanity Sample Prompt", placeholder="A generic prompt used to generate a sample image to verify model fidelity.")
-                        db_sanity_seed = gr.Number(label="Sanity Sample Seed", value=420420)
+                        with gr.Column():
+                            gr.HTML(value="Image Processing")
+                            db_resolution = gr.Number(label="Resolution", precision=0, value=512)
+                            db_center_crop = gr.Checkbox(label="Center Crop", value=False)
+                            db_hflip = gr.Checkbox(label="Apply Horizontal Flip", value=False)
+                            db_sanity_prompt = gr.Textbox(label="Sanity Sample Prompt", placeholder="A generic prompt used to generate a sample image to verify model fidelity.")
+                            db_sanity_seed = gr.Number(label="Sanity Sample Seed", value=420420)
 
-                    with gr.Column():
-                        gr.HTML(value="Miscellaneous")
-                        db_pretrained_vae_name_or_path = gr.Textbox(label='Pretrained VAE Name or Path', placeholder="Leave blank to use base model VAE.", value="")
-                        db_use_concepts = gr.Checkbox(label="Use Concepts List", value=False)
-                        db_concepts_path = gr.Textbox(label="Concepts List", placeholder="Path to JSON file with concepts to train.")
+                        with gr.Column():
+                            gr.HTML(value="Miscellaneous")
+                            db_pretrained_vae_name_or_path = gr.Textbox(label='Pretrained VAE Name or Path', placeholder="Leave blank to use base model VAE.", value="")
+                            db_use_concepts = gr.Checkbox(label="Use Concepts List", value=False)
+                            db_concepts_path = gr.Textbox(label="Concepts List", placeholder="Path to JSON file with concepts to train.")
 
                     with gr.Accordion(open=False, label="Advanced"):
                         with gr.Row():
@@ -342,9 +344,6 @@ def on_ui_tabs():
                             gr.HTML(value="")
                 with gr.Tab("Concepts") as concept_tab:
                     with gr.Column(variant="panel"):
-                        with gr.Row():
-                            db_train_wizard_person = gr.Button(value="Training Wizard (Person)")
-                            db_train_wizard_object = gr.Button(value="Training Wizard (Object/Style)")
                         with gr.Tab("Concept 1"):
                             c1_instance_data_dir, c1_class_data_dir, c1_instance_prompt, \
                             c1_class_prompt, c1_num_class_images, c1_save_sample_prompt, c1_save_sample_template, c1_instance_token, \
