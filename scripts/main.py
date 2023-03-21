@@ -261,7 +261,6 @@ def on_ui_tabs():
                             db_use_lora = gr.Checkbox(label="Use LORA", value=False)
                             db_train_imagic_only = gr.Checkbox(label="Train Imagic Only", value=False)
                             db_use_txt2img = gr.Checkbox(label="Generate Classification Images Using txt2img", value=True)
-                            db_graph_smoothing = gr.Number(value=50, label="Graph Smoothing Steps")
 
                         with gr.Column():
                             gr.HTML(value="Intervals")
@@ -313,6 +312,7 @@ def on_ui_tabs():
                             db_pretrained_vae_name_or_path = gr.Textbox(label='Pretrained VAE Name or Path', placeholder="Leave blank to use base model VAE.", value="")
                             db_use_concepts = gr.Checkbox(label="Use Concepts List", value=False)
                             db_concepts_path = gr.Textbox(label="Concepts List", placeholder="Path to JSON file with concepts to train.")
+                            db_graph_smoothing = gr.Number(value=50, label="Graph Smoothing Steps")
 
                     with gr.Accordion(open=False, label="Advanced"):
                         with gr.Row():
