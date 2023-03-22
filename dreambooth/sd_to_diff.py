@@ -780,15 +780,6 @@ def convert_open_clip_checkpoint(checkpoint):
                 text_model_dict[new_key] = checkpoint[key]
 
     text_model.load_state_dict(text_model_dict)
-    # SKIP for now - need openclip -> HF conversion script here
-    #    keys = list(checkpoint.keys())
-    #
-    #    text_model_dict = {}
-    #    for key in keys:
-    #        if key.startswith("cond_stage_model.model.transformer"):
-    #            text_model_dict[key[len("cond_stage_model.model.transformer.") :]] = checkpoint[key]
-    #
-    #    text_model.load_state_dict(text_model_dict)
 
     return text_model
 
@@ -1006,14 +997,8 @@ def extract_checkpoint(new_model_name: str, checkpoint_file: str, scheduler_type
 
         status
     """
-    db_config = None
-    status = ""
     has_ema = False
     v2 = False
-    is_512 = True
-    model_dir = ""
-    scheduler = ""
-    src = ""
     revision = 0
     epoch = 0
     image_size = 512 if is_512 else 768
@@ -1050,9 +1035,7 @@ def extract_checkpoint(new_model_name: str, checkpoint_file: str, scheduler_type
             return "", "", 0, 0, "", "", "", "", image_size, "", msg
 
     reset_safe = False
-    if not shared.cmd_opts.disable_safe_unpickle:
-        reset_safe = True
-        shared.cmd_opts.disable_safe_unpickle = True
+    db_shared.status.job_count = 11
 
     try:
         db_shared.status.job_no = 0
@@ -1085,7 +1068,6 @@ def extract_checkpoint(new_model_name: str, checkpoint_file: str, scheduler_type
 
             rev_keys = ["db_global_step", "global_step"]
             epoch_keys = ["db_epoch", "epoch"]
-
             for key in rev_keys:
                 if key in checkpoint:
                     revision = checkpoint[key]

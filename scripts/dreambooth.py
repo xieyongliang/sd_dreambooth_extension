@@ -560,6 +560,7 @@ def create_model(new_model_name: str, ckpt_path: str, scheduler_type="ddim", fro
     reload_system_models()
     printm("Extraction complete.")
     status.end()
+    print(result)
     return result
 
 def debug_collate_fn(examples):
