@@ -244,8 +244,8 @@ def on_ui_tabs():
 
                     with gr.Row():
                         db_train_wizard_person = gr.Checkbox(label="Optimization for training Person", value=False)
-                        db_train_wizard_object = gr.Checkbox(label="Optimization for training Object/Style", value=True)
-                        db_performance_wizard = gr.Checkbox(label="Optimzation for training performance (WIP)", value=True)
+                        db_train_wizard_object = gr.Checkbox(label="Optimization for training Object/Style", value=False)
+                        db_performance_wizard = gr.Checkbox(label="Optimzation for training performance (WIP)", value=False)
 
                 with gr.Tab("Settings"):
                     with gr.Column():
@@ -831,7 +831,8 @@ def on_ui_tabs():
                     'db_model_name': db_model_name,
                     'db_train_wizard_person': db_train_wizard_person,
                     'db_train_wizard_object': db_train_wizard_object,
-                    'db_performance_wizard': db_performance_wizard
+                    'db_performance_wizard': db_performance_wizard,
+                    'db_lora_model_name': db_lora_model_name
                 }
             }
 
