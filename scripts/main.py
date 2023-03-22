@@ -826,17 +826,12 @@ def on_ui_tabs():
                     'db_new_model_url': db_new_model_url,
                     'db_new_model_token': db_new_model_token,
                     'db_new_model_extract_ema': db_new_model_extract_ema,
+                    'db_train_unfrozen': db_train_unfrozen,
+                    'db_512_model': db_512_model,
                     'db_model_name': db_model_name,
-                    'db_lora_model_name': db_lora_model_name,
-                    'db_lora_weight': db_lora_weight,
-                    'db_lora_txt_weight': db_lora_txt_weight,
-                    'db_train_imagic_only': db_train_imagic_only,
-                    'db_use_subdir': db_use_subdir,
-                    'db_custom_model_name': db_custom_model_name,
                     'db_train_wizard_person': db_train_wizard_person,
                     'db_train_wizard_object': db_train_wizard_object,
-                    'db_performance_wizard': db_performance_wizard,
-                    'db_512_model': db_512_model
+                    'db_performance_wizard': db_performance_wizard
                 }
             }
 

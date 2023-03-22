@@ -178,21 +178,7 @@ def unload_system_models():
 
 
 def list_attention():
-    has_xformers = False
-    try:
-        import xformers
-        import xformers.ops
-        has_xformers = True
-    except:
-        pass
-    pass
-
-    if has_xformers:
-        # return ["default", "xformers", "sub_quad", "flash_attention"]
-        return ["default", "xformers", "flash_attention"]
-    else:
-        return ["default", "flash_attention"]
-
+    return ["default", "xformers", "flash_attention"]
 
 def list_floats():
     has_bf16 = False
