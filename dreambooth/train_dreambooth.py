@@ -579,6 +579,7 @@ def main(args: DreamboothConfig, use_txt2img: bool = True) -> TrainResult:
                         save_lora = args.save_lora_after
                         save_snapshot = args.save_state_after
                         save_checkpoint = args.save_ckpt_after
+                        print('---saving config---', save_image, save_model, save_snapshot, save_checkpoint, save_lora)
                 else:
                     save_lora = args.save_lora_during
                     save_snapshot = args.save_state_during
