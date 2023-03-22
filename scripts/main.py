@@ -832,7 +832,8 @@ def on_ui_tabs():
                     'db_train_wizard_person': db_train_wizard_person,
                     'db_train_wizard_object': db_train_wizard_object,
                     'db_performance_wizard': db_performance_wizard,
-                    'db_lora_model_name': db_lora_model_name
+                    'db_lora_model_name': db_lora_model_name,
+                    'db_save_safetensors': db_save_safetensors
                 }
             }
 
