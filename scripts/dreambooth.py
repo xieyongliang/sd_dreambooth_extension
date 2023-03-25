@@ -50,7 +50,7 @@ def get_model_snapshot(config: DreamboothConfig):
                     snaps.append(rev_parts[1])
     return snaps
 
-def training_wizard(db_config, is_person=False):
+def training_wizard(is_person=False):
     """
     Calculate the number of steps based on our learning rate, return the following:
     db_num_train_epochs,
@@ -60,10 +60,7 @@ def training_wizard(db_config, is_person=False):
     c4_num_class_images_per,
     db_status
     """
-    if db_config is None:
-        return 100, 0, 0, 0, 0, "Please select a model."
     step_mult = 150 if is_person else 100
-
 
     if is_person:
         class_count = 5
@@ -411,7 +408,7 @@ def start_training(model_dir: str, use_txt2img: bool = True):
     return start_training_from_config(config, use_txt2img)
 
 
-def start_training_from_config(config: DreamboothConfig, use_txt2img: bool = True):
+def start_training_from_config(config: DreamboothConfig, use_txt2img: bool = True, webui: bool = True):
     # Clear pretrained VAE Name if applicable
     if config.pretrained_vae_name_or_path == "":
         config.pretrained_vae_name_or_path = None
@@ -437,7 +434,8 @@ def start_training_from_config(config: DreamboothConfig, use_txt2img: bool = Tru
     # Clear memory and do "stuff" only after we've ensured all the things are right
     if config.custom_model_name:
         print(f"Custom model name is {config.custom_model_name}")
-    unload_system_models()
+    if webui:
+        unload_system_models()
     total_steps = config.revision
     config.save(True)
     images = []
@@ -474,7 +472,8 @@ def start_training_from_config(config: DreamboothConfig, use_txt2img: bool = Tru
         pass
 
     cleanup()
-    reload_system_models()
+    if webui:
+        reload_system_models()
     if config.lora_model_name != "" and config.lora_model_name is not None:
         lora_model_name = f"{config.model_name}_{total_steps}.pt"
     lora_model_name = config.lora_model_name
