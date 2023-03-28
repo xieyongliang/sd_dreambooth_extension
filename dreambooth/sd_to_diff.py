@@ -1285,4 +1285,4 @@ def extract_checkpoint(new_model_name: str, checkpoint_file: str, scheduler_type
         db_shared.start_safe_unpickle()
     printi(result_status)
 
-    return new_model_name, model_dir, revision, epoch, scheduler, src, "True" if has_ema else "False", "True" if v2 else "False", resolution
+    return new_model_name, model_dir, revision, epoch, scheduler, src, True if has_ema else False, True if v2 else False, resolution
