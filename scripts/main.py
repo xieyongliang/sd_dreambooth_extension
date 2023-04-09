@@ -23,11 +23,25 @@ delete_symbol = '\U0001F5D1'  # 🗑️
 update_symbol = '\U0001F51D'  # 🠝
 
 
-def get_sd_models():
+def get_sd_models(request : gr.Request):
+    tokens = shared.demo.server_app.tokens
+    cookies = request.headers['cookie'].split('; ')
+    access_token = None
+    for cookie in cookies:
+        if cookie.startswith('access-token'):
+            access_token = cookie[len('access-token=') : ]
+            break
+    username = tokens[access_token] if access_token else None
+
     api_endpoint = os.environ['api_endpoint']
     names = set()
     if api_endpoint != '':
-        params = {'module': 'sd_models'}
+        params = {
+            'module': 'sd_models'
+        }
+        if username:
+            params['username'] = username
+
         response = requests.get(url=f'{api_endpoint}/sd/models', params=params)
         if response.status_code == 200:
             model_list = json.loads(response.text)
