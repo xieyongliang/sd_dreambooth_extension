@@ -416,6 +416,7 @@ def on_ui_tabs():
         with gr.Row():
             with gr.Column(scale=3):
                 db_status = gr.Label(label='Output')
+                training_job = gr.Markdown('Job detail')
 
             with gr.Column():
                 shared.create_train_dreambooth_component = db_train_model = gr.Button(value="Train", variant='primary')
@@ -876,8 +877,10 @@ def on_ui_tabs():
 
             response = requests.post(url=f'{shared.api_endpoint}/train', json=data)
             if response.status_code == 200:
+                training_job_url = response.text.replace('\"','')
                 return {
-                    db_status: gr.update(value='Submit training job sucessful')
+                    db_status: gr.update(value=f'Submit training job sucessful'),
+                    training_job:gr.update(value=f'Job detail:[{training_job_url}]({training_job_url})')
                 }
             else:
                 return {
@@ -1052,7 +1055,8 @@ def on_ui_tabs():
                 db_models_s3uri
             ],
             outputs=[
-                db_status
+                db_status,
+                training_job
             ]
         )
 
