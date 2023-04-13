@@ -23,35 +23,6 @@ delete_symbol = '\U0001F5D1'  # 🗑️
 update_symbol = '\U0001F51D'  # 🠝
 
 
-def get_sd_models(request : gr.Request):
-    tokens = shared.demo.server_app.tokens
-    cookies = request.headers['cookie'].split('; ')
-    access_token = None
-    for cookie in cookies:
-        if cookie.startswith('access-token'):
-            access_token = cookie[len('access-token=') : ]
-            break
-    username = tokens[access_token] if access_token else None
-
-    api_endpoint = os.environ['api_endpoint']
-    names = set()
-    if api_endpoint != '':
-        params = {
-            'module': 'sd_models'
-        }
-        if username:
-            params['username'] = username
-
-        response = requests.get(url=f'{api_endpoint}/sd/models', params=params)
-        if response.status_code == 200:
-            model_list = json.loads(response.text)
-            for model in model_list:
-                names.add(model)
-    return list(names)
-
-
-
-
 def calc_time_left(progress, threshold, label, force_display):
     if progress == 0:
         return ""
@@ -241,8 +212,8 @@ def on_ui_tabs():
                             db_new_model_url = gr.Textbox(label="Model Path", placeholder="runwayml/stable-diffusion-v1-5")
                             db_new_model_token = gr.Textbox(label="HuggingFace Token", value="")
                         with gr.Row() as local_row:
-                            db_new_model_src = gr.Dropdown(label='Source Checkpoint', choices=sorted(get_sd_models()))
-                            create_refresh_button(db_new_model_src, get_sd_models, lambda: {"choices": sorted(get_sd_models())}, "refresh_sd_models")
+                            db_new_model_src = gr.Dropdown(label='Source Checkpoint', choices=sorted(shared.list_sd_models()))
+                            create_refresh_button(db_new_model_src, shared.refresh_sd_models, lambda: {"choices": sorted(shared.list_sd_models())}, "refresh_sd_models")
                         db_new_model_extract_ema = gr.Checkbox(label='Extract EMA Weights', value=False)
                         db_train_unfrozen = gr.Checkbox(label='Unfreeze Model', value=False)
                         db_new_model_scheduler = gr.Dropdown(label='Scheduler', choices=["pndm", "lms", "euler", "euler-ancestral", "dpm", "ddim"], value="ddim")
