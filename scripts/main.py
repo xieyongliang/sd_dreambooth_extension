@@ -1029,7 +1029,7 @@ def on_ui_tabs():
 def build_concept_panel():
     with gr.Column():
         gr.HTML(value="Directories")
-        instance_data_dir = gr.Textbox(label='Dataset Directory', value='/opt/ml/data/input/concepts', placeholder="Path to directory with input images")
+        instance_data_dir = gr.Textbox(label='Dataset Directory', value='/opt/ml/input/data/concepts', placeholder="Path to directory with input images")
         class_data_dir = gr.Textbox(label='Classification Dataset Directory', placeholder="(Optional) Path to directory with classification/regularization images")
     with gr.Column():
         gr.HTML(value="Filewords")
