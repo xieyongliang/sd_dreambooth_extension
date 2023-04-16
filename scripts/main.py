@@ -634,14 +634,7 @@ def on_ui_tabs():
             db_models_s3uri,
             request : gr.Request
         ):
-            tokens = shared.demo.server_app.tokens
-            cookies = request.headers['cookie'].split('; ')
-            access_token = None
-            for cookie in cookies:
-                if cookie.startswith('access-token'):
-                    access_token = cookie[len('access-token=') : ]
-                    break
-            username = tokens[access_token] if access_token else None
+            username = shared.get_webui_username(request)
 
             params_to_save = [
                 db_model_name,
