@@ -73,7 +73,7 @@ def training_wizard(is_person=False):
 
     print(w_status)
 
-    return int(step_mult), class_count, class_count, class_count, class_count, w_status
+    return int(step_mult), class_count, class_count, class_count, class_count
 
 def largest_prime_factor(n):
     # Special case for n = 2
