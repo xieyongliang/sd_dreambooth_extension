@@ -66,7 +66,6 @@ def get_db_models():
     else:
         model_dir = os.path.dirname(cmd_dreambooth_models_path) if cmd_dreambooth_models_path else paths.models_path
         out_dir = os.path.join(model_dir, "dreambooth")
-        output = []
         if os.path.exists(out_dir):
             dirs = os.listdir(out_dir)
             for found in dirs:
@@ -88,7 +87,6 @@ def get_lora_models():
     else:
         model_dir = os.path.dirname(cmd_lora_models_path) if cmd_lora_models_path else paths.models_path
         out_dir = os.path.join(model_dir, "lora")
-        output = [""]
         if os.path.exists(out_dir):
             dirs = os.listdir(out_dir)
             for found in dirs:

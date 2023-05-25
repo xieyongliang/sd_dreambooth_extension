@@ -16,8 +16,6 @@ import requests
 import os
 import uuid
 
-params_to_save = []
-params_to_load = []
 refresh_symbol = '\U0001f504'  # 🔄
 delete_symbol = '\U0001F5D1'  # 🗑️
 update_symbol = '\U0001F51D'  # 🠝
