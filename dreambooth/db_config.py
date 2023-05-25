@@ -115,17 +115,6 @@ class DreamboothConfig(BaseModel):
         if not os.path.exists(working_dir):
             os.makedirs(working_dir)
 
-        super().__init__(**kwargs)
-        model_name = sanitize_name(model_name)
-        models_path = shared.dreambooth_models_path
-        if models_path == "" or models_path is None:
-            models_path = os.path.join(shared.models_path, "dreambooth")
-        model_dir = os.path.join(models_path, model_name)
-        working_dir = os.path.join(model_dir, "working")
-
-        if not os.path.exists(working_dir):
-            os.makedirs(working_dir)
-
         self.model_name = model_name
         self.model_dir = model_dir
         self.pretrained_model_name_or_path = working_dir
