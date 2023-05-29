@@ -12,7 +12,7 @@ from einops import rearrange
 from torch import einsum
 from torch.optim import Optimizer
 
-from extensions.sd_dreambooth_extension.dreambooth.sub_quad_attention import sub_quad_attnblock_forward
+from dreambooth.sub_quad_attention import sub_quad_attnblock_forward
 
 
 def replace_unet_cross_attn_to_default():

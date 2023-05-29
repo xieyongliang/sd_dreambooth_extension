@@ -5,9 +5,9 @@ from typing import Dict, List, Tuple, Union
 import torch
 import torch.nn as nn
 
-from extensions.sd_dreambooth_extension.dreambooth import db_shared
-from extensions.sd_dreambooth_extension.dreambooth.db_config import DreamboothConfig
-from extensions.sd_dreambooth_extension.dreambooth.db_shared import start_safe_unpickle, stop_safe_unpickle
+from dreambooth import db_shared
+from dreambooth.db_config import DreamboothConfig
+from dreambooth.db_shared import start_safe_unpickle, stop_safe_unpickle
 
 
 class LoraInjectedLinear(nn.Module):

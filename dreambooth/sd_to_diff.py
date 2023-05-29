@@ -26,11 +26,11 @@ import torch
 from diffusers.pipelines.paint_by_example import PaintByExampleImageEncoder
 from huggingface_hub import snapshot_download, HfApi, hf_hub_download
 
-from extensions.sd_dreambooth_extension.dreambooth import db_shared
-from extensions.sd_dreambooth_extension.dreambooth.db_config import DreamboothConfig
-from extensions.sd_dreambooth_extension.dreambooth.db_shared import stop_safe_unpickle
-from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import mytqdm
-from extensions.sd_dreambooth_extension.dreambooth.utils import printi, get_db_models
+from dreambooth import db_shared
+from dreambooth.db_config import DreamboothConfig
+from dreambooth.db_shared import stop_safe_unpickle
+from dreambooth.finetune_utils import mytqdm
+from dreambooth.utils import printi, get_db_models
 from modules import shared
 
 try:

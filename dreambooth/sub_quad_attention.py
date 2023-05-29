@@ -21,7 +21,7 @@ from torch.utils.checkpoint import checkpoint
 import math
 from typing import Optional, NamedTuple, Protocol, List
 
-from extensions.sd_dreambooth_extension.dreambooth import db_shared
+from dreambooth import db_shared
 
 
 

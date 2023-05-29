@@ -3,17 +3,16 @@ from typing import List
 
 import gradio as gr
 
-from extensions.sd_dreambooth_extension.dreambooth.db_config import from_file, save_keys
-from extensions.sd_dreambooth_extension.dreambooth.db_shared import status
-from extensions.sd_dreambooth_extension.dreambooth.diff_to_sd import compile_checkpoint
-from extensions.sd_dreambooth_extension.dreambooth.utils import get_db_models, list_attention, \
+from dreambooth.db_config import from_file, save_keys
+from dreambooth.db_shared import status
+from dreambooth.diff_to_sd import compile_checkpoint
+from dreambooth.utils import get_db_models, list_attention, \
     list_floats, get_lora_models, printm
-from extensions.sd_dreambooth_extension.scripts.dreambooth import load_model_params
+from scripts.dreambooth import load_model_params
 from modules import script_callbacks, shared
 from modules.ui import gr_show, create_refresh_button
 import json
 import requests
-import os
 import uuid
 
 refresh_symbol = '\U0001f504'  # 🔄

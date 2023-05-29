@@ -12,17 +12,17 @@ import torch.utils.data.dataloader
 from accelerate import find_executable_batch_size
 from diffusers.utils import logging as dl
 
-from extensions.sd_dreambooth_extension.dreambooth import db_config
-from extensions.sd_dreambooth_extension.dreambooth.db_bucket_sampler import BucketSampler
-from extensions.sd_dreambooth_extension.dreambooth.db_concept import Concept
-from extensions.sd_dreambooth_extension.dreambooth.db_config import from_file, DreamboothConfig, sanitize_name
-from extensions.sd_dreambooth_extension.dreambooth.db_optimization import UniversalScheduler
-from extensions.sd_dreambooth_extension.dreambooth.db_shared import status
-from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import ImageBuilder, generate_dataset, \
+from dreambooth import db_config
+from dreambooth.db_bucket_sampler import BucketSampler
+from dreambooth.db_concept import Concept
+from dreambooth.db_config import from_file, DreamboothConfig, sanitize_name
+from dreambooth.db_optimization import UniversalScheduler
+from dreambooth.db_shared import status
+from dreambooth.finetune_utils import ImageBuilder, generate_dataset, \
     PromptDataset, mytqdm
-from extensions.sd_dreambooth_extension.dreambooth.prompt_data import PromptData
-from extensions.sd_dreambooth_extension.dreambooth.sd_to_diff import extract_checkpoint
-from extensions.sd_dreambooth_extension.dreambooth.utils import reload_system_models, unload_system_models, get_images, \
+from dreambooth.prompt_data import PromptData
+from dreambooth.sd_to_diff import extract_checkpoint
+from dreambooth.utils import reload_system_models, unload_system_models, get_images, \
     cleanup, get_checkpoint_match, printm
 from modules import shared
 

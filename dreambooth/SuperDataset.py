@@ -7,8 +7,8 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from extensions.sd_dreambooth_extension.dreambooth.db_concept import Concept
-from extensions.sd_dreambooth_extension.dreambooth.utils import get_images
+from dreambooth.db_concept import Concept
+from dreambooth.utils import get_images
 from modules import images
 
 

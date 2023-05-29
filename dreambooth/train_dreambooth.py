@@ -20,23 +20,23 @@ from torch.cuda.profiler import profile
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
-from extensions.sd_dreambooth_extension.dreambooth import xattention, db_shared
-from extensions.sd_dreambooth_extension.dreambooth.SuperDataset import SampleData
-from extensions.sd_dreambooth_extension.dreambooth.db_bucket_sampler import BucketSampler
-from extensions.sd_dreambooth_extension.dreambooth.db_config import DreamboothConfig
-from extensions.sd_dreambooth_extension.dreambooth.db_optimization import UniversalScheduler
-from extensions.sd_dreambooth_extension.dreambooth.db_shared import status
-from extensions.sd_dreambooth_extension.dreambooth.db_webhook import send_training_update
-from extensions.sd_dreambooth_extension.dreambooth.diff_to_sd import compile_checkpoint
-from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import EMAModel, generate_classifiers, \
+from dreambooth import xattention, db_shared
+from dreambooth.SuperDataset import SampleData
+from dreambooth.db_bucket_sampler import BucketSampler
+from dreambooth.db_config import DreamboothConfig
+from dreambooth.db_optimization import UniversalScheduler
+from dreambooth.db_shared import status
+from dreambooth.db_webhook import send_training_update
+from dreambooth.diff_to_sd import compile_checkpoint
+from dreambooth.finetune_utils import EMAModel, generate_classifiers, \
     generate_dataset, TrainResult, CustomAccelerator, mytqdm, encode_hidden_state
-from extensions.sd_dreambooth_extension.dreambooth.memory import find_executable_batch_size
-from extensions.sd_dreambooth_extension.dreambooth.prompt_data import PromptData
-from extensions.sd_dreambooth_extension.dreambooth.sample_dataset import SampleDataset
-from extensions.sd_dreambooth_extension.dreambooth.utils import cleanup, unload_system_models, parse_logs, printm, \
+from dreambooth.memory import find_executable_batch_size
+from dreambooth.prompt_data import PromptData
+from dreambooth.sample_dataset import SampleDataset
+from dreambooth.utils import cleanup, unload_system_models, parse_logs, printm, \
     import_model_class_from_model_name_or_path, db_save_image
-from extensions.sd_dreambooth_extension.dreambooth.xattention import optim_to
-from extensions.sd_dreambooth_extension.lora_diffusion.lora import save_lora_weight, inject_trainable_lora
+from dreambooth.xattention import optim_to
+from lora_diffusion.lora import save_lora_weight, inject_trainable_lora
 from modules import shared, paths
 
 try:

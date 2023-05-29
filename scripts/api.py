@@ -18,16 +18,16 @@ from pydantic import BaseModel, Field
 from pydantic.dataclasses import Union
 from pydantic.types import List
 
-from extensions.sd_dreambooth_extension.dreambooth import db_shared
-from extensions.sd_dreambooth_extension.dreambooth.db_concept import Concept
-from extensions.sd_dreambooth_extension.dreambooth.db_config import from_file, DreamboothConfig
-from extensions.sd_dreambooth_extension.dreambooth.db_shared import DreamState
-from extensions.sd_dreambooth_extension.dreambooth.diff_to_sd import compile_checkpoint
-from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import generate_classifiers, PromptDataset
-from extensions.sd_dreambooth_extension.dreambooth.secret import get_secret
-from extensions.sd_dreambooth_extension.dreambooth.utils import get_db_models, get_lora_models
-from extensions.sd_dreambooth_extension.scripts import dreambooth
-from extensions.sd_dreambooth_extension.scripts.dreambooth import ui_samples, create_model
+from dreambooth import db_shared
+from dreambooth.db_concept import Concept
+from dreambooth.db_config import from_file, DreamboothConfig
+from dreambooth.db_shared import DreamState
+from dreambooth.diff_to_sd import compile_checkpoint
+from dreambooth.finetune_utils import generate_classifiers, PromptDataset
+from dreambooth.secret import get_secret
+from dreambooth.utils import get_db_models, get_lora_models
+from scripts import dreambooth
+from scripts.dreambooth import ui_samples, create_model
 from modules import sd_models
 
 

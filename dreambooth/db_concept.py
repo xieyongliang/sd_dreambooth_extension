@@ -4,7 +4,7 @@ from typing import Dict, Union
 
 from pydantic import BaseModel
 
-from extensions.sd_dreambooth_extension.dreambooth.utils import get_images
+from dreambooth.utils import get_images
 
 
 class Concept(BaseModel):

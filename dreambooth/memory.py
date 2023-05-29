@@ -27,8 +27,8 @@ from datetime import datetime
 import torch
 import torch.backends.cudnn
 
-from extensions.sd_dreambooth_extension.dreambooth import db_shared
-from extensions.sd_dreambooth_extension.dreambooth.utils import cleanup
+from dreambooth import db_shared
+from dreambooth.utils import cleanup
 
 
 def should_reduce_batch_size(exception: Exception) -> bool:

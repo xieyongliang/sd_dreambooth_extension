@@ -9,11 +9,11 @@ import torch.utils.data
 from PIL import Image
 from torchvision.transforms import transforms
 
-from extensions.sd_dreambooth_extension.dreambooth import db_shared
-from extensions.sd_dreambooth_extension.dreambooth.db_shared import status
-from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import closest_resolution, make_bucket_resolutions, \
+from dreambooth import db_shared
+from dreambooth.db_shared import status
+from dreambooth.finetune_utils import closest_resolution, make_bucket_resolutions, \
     mytqdm
-from extensions.sd_dreambooth_extension.dreambooth.prompt_data import PromptData
+from dreambooth.prompt_data import PromptData
 
 
 class DbDataset(torch.utils.data.Dataset):

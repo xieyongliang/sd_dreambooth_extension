@@ -20,13 +20,13 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 from transformers import CLIPTextModel, AutoTokenizer
 
-from extensions.sd_dreambooth_extension.dreambooth import db_shared
-from extensions.sd_dreambooth_extension.dreambooth.db_concept import Concept
-from extensions.sd_dreambooth_extension.dreambooth.db_config import DreamboothConfig, from_file
-from extensions.sd_dreambooth_extension.dreambooth.db_shared import status
-from extensions.sd_dreambooth_extension.dreambooth.prompt_data import PromptData
-from extensions.sd_dreambooth_extension.dreambooth.utils import cleanup, get_checkpoint_match, get_images, db_save_image
-from extensions.sd_dreambooth_extension.lora_diffusion.lora import patch_pipe, tune_lora_scale, _text_lora_path_ui
+from dreambooth import db_shared
+from dreambooth.db_concept import Concept
+from dreambooth.db_config import DreamboothConfig, from_file
+from dreambooth.db_shared import status
+from dreambooth.prompt_data import PromptData
+from dreambooth.utils import cleanup, get_checkpoint_match, get_images, db_save_image
+from lora_diffusion.lora import patch_pipe, tune_lora_scale, _text_lora_path_ui
 from modules import shared, devices, sd_models, sd_hijack, prompt_parser, lowvram
 from modules.processing import StableDiffusionProcessingTxt2Img, StableDiffusionProcessing, Processed, \
     get_fixed_seed, create_infotext, decode_first_stage

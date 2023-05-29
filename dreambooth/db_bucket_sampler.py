@@ -1,8 +1,8 @@
 import random
 from typing import Tuple
 
-from extensions.sd_dreambooth_extension.dreambooth.finetuning_dataset import DbDataset
-from extensions.sd_dreambooth_extension.dreambooth.utils import printm
+from dreambooth.finetuning_dataset import DbDataset
+from dreambooth.utils import printm
 
 
 class BucketSampler:

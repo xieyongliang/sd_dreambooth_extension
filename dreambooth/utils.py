@@ -16,7 +16,7 @@ from pandas.plotting._matplotlib.style import get_standard_colors
 from tqdm.auto import tqdm
 from transformers import PretrainedConfig
 
-from extensions.sd_dreambooth_extension.dreambooth.prompt_data import PromptData
+from dreambooth.prompt_data import PromptData
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow
@@ -26,7 +26,7 @@ from huggingface_hub import HfFolder, whoami
 from pandas import DataFrame
 from tensorboard.compat.proto import event_pb2
 
-from extensions.sd_dreambooth_extension.dreambooth.db_shared import status
+from dreambooth.db_shared import status
 from modules import shared, paths, sd_models
 import requests
 import json

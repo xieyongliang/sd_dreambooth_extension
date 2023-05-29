@@ -2,10 +2,10 @@ import os.path
 import random
 from typing import List
 
-from extensions.sd_dreambooth_extension.dreambooth.db_config import DreamboothConfig
-from extensions.sd_dreambooth_extension.dreambooth.finetune_utils import FilenameTextGetter
-from extensions.sd_dreambooth_extension.dreambooth.prompt_data import PromptData
-from extensions.sd_dreambooth_extension.dreambooth.utils import get_images
+from dreambooth.db_config import DreamboothConfig
+from dreambooth.finetune_utils import FilenameTextGetter
+from dreambooth.prompt_data import PromptData
+from dreambooth.utils import get_images
 
 
 class SampleDataset:
