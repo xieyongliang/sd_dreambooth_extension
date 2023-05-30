@@ -1050,7 +1050,7 @@ def extract_checkpoint(new_model_name: str, checkpoint_file: str, from_hub=False
             new_model_token is None or new_model_token == ""):
         msg = "Please provide a URL and token for huggingface models."
     if msg is not None:
-        return "", "", 0, 0, "", "", "", "", image_size, "", msg
+        return "", "", 0, 0, "", "", "", "", image_size, ""
 
     # Create empty config
     db_config = DreamboothConfig(model_name=new_model_name, src=checkpoint_file if not from_hub else new_model_url)
@@ -1072,7 +1072,7 @@ def extract_checkpoint(new_model_name: str, checkpoint_file: str, from_hub=False
         else:
             msg = "Unable to fetch model from hub."
             print(msg)
-            return "", "", 0, 0, "", "", "", "", image_size, "", msg
+            return "", "", 0, 0, "", "", "", "", image_size, ""
 
     shared.status.job_count = 11
 
@@ -1086,7 +1086,7 @@ def extract_checkpoint(new_model_name: str, checkpoint_file: str, from_hub=False
                 map_location = torch.device('cpu')
         except:
             print("UPDATE YOUR WEBUI!!!!")
-            return "", "", 0, 0, "", "", "", "", image_size, "", "Update your web UI."
+            return "", "", 0, 0, "", "", "", "", image_size, ""
 
         # Try to determine if v1 or v2 model if we have a ckpt
         if not from_hub:
@@ -1142,20 +1142,20 @@ def extract_checkpoint(new_model_name: str, checkpoint_file: str, from_hub=False
         db_config.lifetime_revision = revision
         db_config.epoch = epoch
         db_config.v2 = v2
+        print('--db_config in extract--', vars(db_config))
         if from_hub:
             result_status = "Model fetched from hub."
             db_config.save()
 
-            return gr_update(choices=sorted(get_db_models()), value=new_model_name), \
+            return new_model_name, \
                 db_config.model_dir, \
                 revision, \
                 epoch, \
                 db_config.scheduler, \
                 db_config.src, \
-                "True" if has_ema else "False", \
-                "True" if v2 else "False", \
-                db_config.resolution, \
-                result_status
+                True if has_ema else False, \
+                True if v2 else False, \
+                db_config.resolution
 
         print(f"{'v2' if v2 else 'v1'} model loaded.")
 
@@ -1169,7 +1169,7 @@ def extract_checkpoint(new_model_name: str, checkpoint_file: str, from_hub=False
 
         if original_config_file is None or not os.path.exists(original_config_file):
             print("Unable to select a config file.")
-            return "", "", 0, 0, "", "", "", "", image_size, "", "Unable to find a config file."
+            return "", "", 0, 0, "", "", "", "", image_size, ""
 
         print(f"Trying to load: {original_config_file}")
         original_config = OmegaConf.load(original_config_file)
@@ -1335,12 +1335,11 @@ def extract_checkpoint(new_model_name: str, checkpoint_file: str, from_hub=False
     enable_safe_unpickle()
     printi(result_status)
 
-    return gr_update(choices=sorted(get_db_models()), value=new_model_name), \
+    return new_model_name, \
         model_dir, \
         revision, \
         epoch, \
         src, \
-        "True" if has_ema else "False", \
-        "True" if v2 else "False", \
-        db_config.resolution, \
-        result_status
+        True if has_ema else False, \
+        True if v2 else False, \
+        db_config.resolution

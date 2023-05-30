@@ -19,7 +19,7 @@ from torch.optim import AdamW
 
 from dreambooth import shared
 from dreambooth.dataclasses import db_config
-from dreambooth.dataclasses.db_config import from_file, sanitize_name
+from dreambooth.dataclasses.db_config import from_file, sanitize_name, DreamboothConfig
 from dreambooth.dataclasses.prompt_data import PromptData
 from dreambooth.dataset.bucket_sampler import BucketSampler
 from dreambooth.dataset.class_dataset import ClassDataset
@@ -92,7 +92,7 @@ def training_wizard(model_dir, is_person=False):
 
     print(w_status)
 
-    return int(step_mult), class_count, class_count, class_count, class_count, w_status
+    return int(step_mult), class_count, class_count, class_count, class_count
 
 
 def largest_prime_factor(n):
@@ -276,6 +276,7 @@ def performance_wizard(model_name):
     }
     for key in log_dict:
         msg += f"<br>{key}: {log_dict[key]}"
+    print(msg)
     return (
         attention,
         gradient_checkpointing,
@@ -290,7 +291,6 @@ def performance_wizard(model_name):
         use_ema,
         save_samples_every,
         save_weights_every,
-        msg,
     )
 
 
@@ -658,7 +658,6 @@ def load_model_params(model_name):
             msg,
         )
 
-
 def start_training(model_dir: str, class_gen_method: str = "Native Diffusers"):
     """
 
@@ -677,10 +676,13 @@ def start_training(model_dir: str, class_gen_method: str = "Native Diffusers"):
         lora_model_name = gr_update(visible=True)
         return lora_model_name, 0, 0, [], msg
     config = from_file(model_dir)
+
+    return start_training_from_config(config, class_gen_method)
+
+def start_training_from_config(config: DreamboothConfig, class_gen_method: str = "Native Diffusers"):
     # Clear pretrained VAE Name if applicable
     if config.pretrained_vae_name_or_path == "":
         config.pretrained_vae_name_or_path = None
-
     msg = None
     if config.attention == "xformers":
         if config.mixed_precision == "no":
@@ -724,6 +726,7 @@ def start_training(model_dir: str, class_gen_method: str = "Native Diffusers"):
                 from dreambooth.train_dreambooth import main  # noqa
             except:
                 from dreambooth.train_dreambooth import main  # noqa
+            shared.db_model_config = config
             result = main(class_gen_method=class_gen_method)
 
         config = result.config

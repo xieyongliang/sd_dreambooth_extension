@@ -11,7 +11,7 @@ from dreambooth.utils.image_utils import get_scheduler_names  # noqa
 from dreambooth.utils.utils import list_attention
 
 # Keys to save, replacing our dumb __init__ method
-save_keys = []
+save_keys = ['db_model_name', 'db_attention', 'db_cache_latents', 'db_clip_skip', 'db_concepts_path', 'db_custom_model_name', 'db_noise_scheduler', 'db_deterministic', 'db_ema_predict', 'db_epochs', 'db_epoch_pause_frequency', 'db_epoch_pause_time', 'db_freeze_clip_normalization', 'db_gradient_accumulation_steps', 'db_gradient_checkpointing', 'db_gradient_set_to_none', 'db_half_model', 'db_hflip', 'db_infer_ema', 'db_learning_rate', 'db_learning_rate_min', 'db_lora_learning_rate', 'db_lora_model_name', 'db_lora_unet_rank', 'db_lora_txt_rank', 'db_lora_txt_learning_rate', 'db_lora_txt_weight', 'db_lora_weight', 'db_lr_cycles', 'db_lr_factor', 'db_lr_power', 'db_lr_scale_pos', 'db_lr_scheduler', 'db_lr_warmup_steps', 'db_max_token_length', 'db_mixed_precision', 'db_adamw_weight_decay', 'db_model_path', 'db_num_train_epochs', 'db_offset_noise', 'db_optimizer', 'db_pad_tokens', 'db_pretrained_vae_name_or_path', 'db_prior_loss_scale', 'db_prior_loss_target', 'db_prior_loss_weight', 'db_prior_loss_weight_min', 'db_resolution', 'db_revision', 'db_sample_batch_size', 'db_sanity_prompt', 'db_sanity_seed', 'db_save_ckpt_after', 'db_save_ckpt_cancel', 'db_save_ckpt_during', 'db_save_embedding_every', 'db_save_ema', 'db_save_lora_after', 'db_save_lora_cancel', 'db_save_lora_during', 'db_save_lora_for_extra_net', 'db_save_preview_every', 'db_save_safetensors', 'db_save_state_after', 'db_save_state_cancel', 'db_save_state_during', 'db_scheduler', 'db_split_loss', 'db_strict_tokens', 'db_shuffle_tags', 'db_snapshot', 'db_src', 'db_tf32_enable', 'db_train_batch_size', 'db_train_imagic_only', 'db_train_unet', 'db_stop_text_encoder', 'db_use_concepts', 'db_train_unfrozen', 'db_use_ema', 'db_use_lora', 'db_use_lora_extended', 'db_use_subdir', 'c1_class_data_dir', 'c1_class_guidance_scale', 'c1_class_infer_steps', 'c1_class_negative_prompt', 'c1_class_prompt', 'c1_class_token', 'c1_instance_data_dir', 'c1_instance_prompt', 'c1_instance_token', 'c1_n_save_sample', 'c1_num_class_images_per', 'c1_sample_seed', 'c1_save_guidance_scale', 'c1_save_infer_steps', 'c1_save_sample_negative_prompt', 'c1_save_sample_prompt', 'c1_save_sample_template', 'c2_class_data_dir', 'c2_class_guidance_scale', 'c2_class_infer_steps', 'c2_class_negative_prompt', 'c2_class_prompt', 'c2_class_token', 'c2_instance_data_dir', 'c2_instance_prompt', 'c2_instance_token', 'c2_n_save_sample', 'c2_num_class_images_per', 'c2_sample_seed', 'c2_save_guidance_scale', 'c2_save_infer_steps', 'c2_save_sample_negative_prompt', 'c2_save_sample_prompt', 'c2_save_sample_template', 'c3_class_data_dir', 'c3_class_guidance_scale', 'c3_class_infer_steps', 'c3_class_negative_prompt', 'c3_class_prompt', 'c3_class_token', 'c3_instance_data_dir', 'c3_instance_prompt', 'c3_instance_token', 'c3_n_save_sample', 'c3_num_class_images_per', 'c3_sample_seed', 'c3_save_guidance_scale', 'c3_save_infer_steps', 'c3_save_sample_negative_prompt', 'c3_save_sample_prompt', 'c3_save_sample_template', 'c4_class_data_dir', 'c4_class_guidance_scale', 'c4_class_infer_steps', 'c4_class_negative_prompt', 'c4_class_prompt', 'c4_class_token', 'c4_instance_data_dir', 'c4_instance_prompt', 'c4_instance_token', 'c4_n_save_sample', 'c4_num_class_images_per', 'c4_sample_seed', 'c4_save_guidance_scale', 'c4_save_infer_steps', 'c4_save_sample_negative_prompt', 'c4_save_sample_prompt', 'c4_save_sample_template']
 
 # Keys to return to the ui when Load Settings is clicked.
 ui_keys = []
@@ -131,18 +131,23 @@ class DreamboothConfig(BaseModel):
         super().__init__(**kwargs)
         model_name = sanitize_name(model_name)
         models_path = shared.dreambooth_models_path
+
+        print(f"1. Models path set to: {models_path}")
         if models_path == "" or models_path is None:
             models_path = os.path.join(shared.models_path, "dreambooth")
 
+        print(f"2. Models path set to: {models_path}")
         # If we're using the new UI, this should be populated, so load models from here.
         if len(shared.paths):
             models_path = os.path.join(shared.paths["models"], "dreambooth")
+
+        print(f"3. Models path set to: {models_path}")
 
         if not self.use_lora:
             self.lora_model_name = ""
 
         model_dir = os.path.join(models_path, model_name)
-        # print(f"Model dir set to: {model_dir}")
+        print(f"4. Model dir set to: {model_dir}")
         working_dir = os.path.join(model_dir, "working")
 
         if not os.path.exists(working_dir):

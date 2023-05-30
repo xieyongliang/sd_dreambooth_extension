@@ -148,15 +148,7 @@ def list_optimizer():
 
 
 def list_attention():
-    has_xformers = xformers_check()
-    import diffusers.utils
-
-    diffusers.utils.is_xformers_available = xformers_check
-    if has_xformers:
-        return ["default", "xformers"]
-    else:
-        return ["default"]
-
+    return ["default", "xformers", "flash_attention"]
 
 def list_precisions():
     precisions = ["no", "fp16"]

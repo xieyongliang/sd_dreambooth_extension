@@ -8,9 +8,9 @@ import torch
 from diffusers.utils import is_xformers_available
 from transformers import PretrainedConfig
 
-from dreambooth import shared  # noqa
-from dreambooth.dataclasses.db_config import DreamboothConfig  # noqa
-from dreambooth.utils.utils import cleanup  # noqa
+from extensions.sd_dreambooth_extension.dreambooth import shared  # noqa
+from extensions.sd_dreambooth_extension.dreambooth.dataclasses.db_config import DreamboothConfig  # noqa
+from extensions.sd_dreambooth_extension.dreambooth.utils.utils import cleanup  # noqa
 
 checkpoints_list = {}
 checkpoint_alisases = {}
@@ -19,6 +19,8 @@ checkpoints_loaded = collections.OrderedDict()
 model_dir = "Stable-diffusion"
 model_path = os.path.abspath(os.path.join(shared.models_path, model_dir))
 
+import requests
+import json
 
 def model_hash(filename):
     """old hash that only looks at a small part of the file and is prone to collisions"""
@@ -40,7 +42,8 @@ class CheckpointInfo:
         self.filename = filename
         abspath = os.path.abspath(filename)
 
-        if shared.cmd_opts.ckpt_dir is not None and abspath.startswith(shared.cmd_opts.ckpt_dir):
+        from modules import shared as auto_shared
+        if auto_shared.cmd_opts.ckpt_dir is not None and abspath.startswith(auto_shared.cmd_opts.ckpt_dir):
             name = abspath.replace(shared.cmd_opts.ckpt_dir, '')
         elif abspath.startswith(model_path):
             name = abspath.replace(model_path, '')
@@ -88,10 +91,11 @@ class CheckpointInfo:
 def list_models():
     checkpoints_list.clear()
     checkpoint_alisases.clear()
-    model_list = modelloader.load_models(model_path=model_path, command_path=shared.cmd_opts.ckpt_dir,
+    model_list = modelloader.load_models(model_path=model_path, command_path=auto_shared.cmd_opts.ckpt_dir,
                                          ext_filter=[".ckpt", ".safetensors"], ext_blacklist=[".vae.safetensors"])
 
-    cmd_ckpt = shared.cmd_opts.ckpt
+    from modules import shared as auto_shared
+    cmd_ckpt = auto_shared.cmd_opts.ckpt
     if os.path.exists(cmd_ckpt):
         checkpoint_info = CheckpointInfo(cmd_ckpt)
         checkpoint_info.register()
@@ -110,28 +114,49 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 def get_db_models():
-    rgx = re.compile(r"\[.*\]")
     output = [""]
-    out_dir = shared.dreambooth_models_path
-    if os.path.exists(out_dir):
-        for item in os.listdir(out_dir):
-            if os.path.isdir(os.path.join(out_dir, item)) and not rgx.search(item):
+    from modules import shared as auto_shared
+    if auto_shared.cmd_opts.pureui:
+        api_endpoint = os.environ['api_endpoint']
+        params = {'module': 'dreambooth'}
+        response = requests.get(url=f'{api_endpoint}/sd/models', params=params)
+        if response.status_code == 200:
+            items = json.loads(response.text)
+            for item in items:
                 output.append(item)
+    else:
+        rgx = re.compile(r"\[.*\]")
+        output = [""]
+        out_dir = shared.dreambooth_models_path
+        if os.path.exists(out_dir):
+            for item in os.listdir(out_dir):
+                if os.path.isdir(os.path.join(out_dir, item)) and not rgx.search(item):
+                    output.append(item)
     return output
 
 
 def get_lora_models(config: DreamboothConfig = None):
     output = [""]
-    if config is None:
-        config = shared.db_model_config
-    if config is not None:
-        lora_dir = os.path.join(config.model_dir, "loras")
-        if os.path.exists(lora_dir):
-            files = os.listdir(lora_dir)
-            for file in files:
-                if os.path.isfile(os.path.join(lora_dir, file)):
-                    if ".pt" in file and "_txt.pt" not in file:
-                        output.append(file)
+    from modules import shared as auto_shared
+    if auto_shared.cmd_opts.pureui:
+        api_endpoint = os.environ['api_endpoint']
+        params = {'module': 'lora'}
+        response = requests.get(url=f'{api_endpoint}/sd/models', params=params)
+        if response.status_code == 200:
+            items = json.loads(response.text)
+            for item in items:
+                output.append(item)
+    else:
+        if config is None:
+            config = shared.db_model_config
+        if config is not None:
+            lora_dir = os.path.join(config.model_dir, "loras")
+            if os.path.exists(lora_dir):
+                files = os.listdir(lora_dir)
+                for file in files:
+                    if os.path.isfile(os.path.join(lora_dir, file)):
+                        if ".pt" in file and "_txt.pt" not in file:
+                            output.append(file)
     return output
 
 

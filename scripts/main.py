@@ -5,8 +5,8 @@ from typing import List
 import gradio as gr
 
 from dreambooth.dataclasses.db_config import (
-    save_config,
     from_file,
+    save_keys
 )
 from dreambooth.diff_to_sd import compile_checkpoint
 from dreambooth.secret import (
@@ -15,22 +15,10 @@ from dreambooth.secret import (
     clear_secret,
 )
 from dreambooth.shared import (
-    status,
-    get_launch_errors,
+    status
 )
 from dreambooth.ui_functions import (
-    performance_wizard,
-    training_wizard,
-    training_wizard_person,
-    load_model_params,
-    ui_classifiers,
-    debug_buckets,
-    create_model,
-    generate_samples,
-    load_params,
-    start_training,
-    update_extension,
-    start_crop,
+    load_model_params
 )
 from dreambooth.utils.image_utils import (
     get_scheduler_names,
@@ -43,33 +31,21 @@ from dreambooth.utils.model_utils import (
 from dreambooth.utils.utils import (
     list_attention,
     list_precisions,
-    wrap_gpu_call,
     printm,
     list_optimizer,
     list_schedulers,
 )
-from dreambooth.webhook import save_and_test_webhook
 from helpers.log_parser import LogParser
-from helpers.version_helper import check_updates
-from modules import script_callbacks, sd_models
+from modules import script_callbacks, shared
 from modules.ui import gr_show, create_refresh_button
+import json
+import requests
+import uuid
 
-params_to_save = []
-params_to_load = []
 refresh_symbol = "\U0001f504"  # 🔄
 delete_symbol = "\U0001F5D1"  # 🗑️
 update_symbol = "\U0001F51D"  # 🠝
 log_parser = LogParser()
-
-
-def get_sd_models():
-    sd_models.list_models()
-    sd_list = sd_models.checkpoints_list
-    names = []
-    for key in sd_list:
-        names.append(key)
-    return names
-
 
 def calc_time_left(progress, threshold, label, force_display):
     if progress == 0:
@@ -234,43 +210,49 @@ def ui_gen_ckpt(model_name: str):
     res = compile_checkpoint(model_name, lora_path, True, True, config.snapshot)
     return res
 
+training_instance_types = [
+    'ml.p2.xlarge',
+    'ml.p2.8xlarge',
+    'ml.p2.16xlarge',
+    'ml.p3.2xlarge',
+    'ml.p3.8xlarge',
+    'ml.p3.16xlarge',
+    'ml.g4dn.xlarge',
+    'ml.g4dn.2xlarge',
+    'ml.g4dn.4xlarge',
+    'ml.g4dn.8xlarge',
+    'ml.g4dn.12xlarge',
+    'ml.g4dn.16xlarge',
+    'ml.g5.xlarge',
+    'ml.g5.2xlarge',
+    'ml.g5.4xlarge',
+    'ml.g5.8xlarge',
+    'ml.g5.12xlarge',
+    'ml.g5.16xlarge',
+    'ml.g5.24xlarge',
+    'ml.g5.48xlarge',
+    'ml.p4d.24xlarge'
+]
 
 def on_ui_tabs():
     with gr.Blocks() as dreambooth_interface:
-        # Top button row
-        with gr.Row(equal_height=True, elem_id="DbTopRow"):
-            db_load_params = gr.Button(value="Load Settings", elem_id="db_load_params")
-            db_save_params = gr.Button(value="Save Settings", elem_id="db_save_config")
-            db_train_model = gr.Button(
-                value="Train", variant="primary", elem_id="db_train"
-            )
-            db_generate_checkpoint = gr.Button(
-                value="Generate Ckpt", elem_id="db_gen_ckpt"
-            )
-            db_generate_checkpoint_during = gr.Button(
-                value="Save Weights", elem_id="db_gen_ckpt_during"
-            )
-            db_train_sample = gr.Button(
-                value="Generate Samples", elem_id="db_train_sample"
-            )
-            db_cancel = gr.Button(value="Cancel", elem_id="db_cancel")
-        with gr.Row():
-            gr.HTML(value="Select or create a model to begin.", elem_id="hint_row")
         with gr.Row().style(equal_height=False):
             with gr.Column(variant="panel", elem_id="ModelPanel"):
-                with gr.Column():
-                    gr.HTML(value="<span class='hh'>Model</span>")
-                    with gr.Tab("Select"):
+                with gr.Tab("Model"):
+                    db_create_new_db_model = gr.Checkbox(label="Create new model", value=True)
+
+                    with gr.Box(visible=False) as select_existing_model_box:
+                        gr.HTML(value="<p style='margin-bottom: 1.5em'><b>Select existing model</b></p>")
                         with gr.Row():
-                            db_model_name = gr.Dropdown(
-                                label="Model", choices=sorted(get_db_models())
-                            )
-                            create_refresh_button(
-                                db_model_name,
-                                get_db_models,
-                                lambda: {"choices": sorted(get_db_models())},
-                                "refresh_db_models",
-                            )
+                                db_model_name = gr.Dropdown(
+                                    label="Model", choices=sorted(get_db_models())
+                                )
+                                create_refresh_button(
+                                    db_model_name,
+                                    get_db_models,
+                                    lambda: {"choices": sorted(get_db_models())},
+                                    "refresh_db_models",
+                                )
                         with gr.Row():
                             db_snapshot = gr.Dropdown(
                                 label="Snapshot to Resume",
@@ -310,18 +292,17 @@ def on_ui_tabs():
                         with gr.Row():
                             gr.HTML(value="Source Checkpoint:")
                             db_src = gr.HTML()
-                    with gr.Tab("Create"):
-                        with gr.Column():
-                            db_create_model = gr.Button(
-                                value="Create Model", variant="primary"
-                            )
+
+                    with gr.Box() as create_new_model_box:
+                        gr.HTML(value="<p style='margin-bottom: 1.5em'><b>Create new model</b></p>")
+
                         db_new_model_name = gr.Textbox(label="Name")
                         with gr.Row():
                             db_create_from_hub = gr.Checkbox(
                                 label="Create From Hub", value=False
                             )
-                            db_512_model = gr.Checkbox(label="512x Model", value=True)
-                        with gr.Column(visible=False) as hub_row:
+                            db_512_model = gr.Checkbox(label="512x Model", value=True, interactive=True)
+                        with gr.Row(visible=False) as hub_row:
                             db_new_model_url = gr.Textbox(
                                 label="Model Path",
                                 placeholder="runwayml/stable-diffusion-v1-5",
@@ -329,35 +310,45 @@ def on_ui_tabs():
                             db_new_model_token = gr.Textbox(
                                 label="HuggingFace Token", value=""
                             )
-                        with gr.Column(visible=True) as local_row:
-                            with gr.Row():
-                                db_new_model_src = gr.Dropdown(
-                                    label="Source Checkpoint",
-                                    choices=sorted(get_sd_models()),
-                                )
-                                create_refresh_button(
-                                    db_new_model_src,
-                                    get_sd_models,
-                                    lambda: {"choices": sorted(get_sd_models())},
-                                    "refresh_sd_models",
-                                )
+                        with gr.Row() as local_row:
+                            db_new_model_src = gr.Dropdown(
+                                label="Source Checkpoint",
+                                choices=sorted(shared.list_sd_models()),
+                                interactive=True
+                            )
+                            create_refresh_button(
+                                db_new_model_src,
+                                shared.refresh_sd_models,
+                                lambda: {"choices": sorted(shared.list_sd_models())},
+                                "refresh_sd_models",
+                            )
                         db_new_model_extract_ema = gr.Checkbox(
                             label="Extract EMA Weights", value=False
                         )
                         db_train_unfrozen = gr.Checkbox(label="Unfreeze Model", value=False)
-                with gr.Column():
-                    with gr.Accordion(open=False, label="Resources"):
-                        with gr.Column():
-                            gr.HTML(
-                                value="<a class=\"hyperlink\" href=\"https://github.com/d8ahazard/sd_dreambooth_extension/wiki/ELI5-Training\">Beginners guide</a>",
-                            )
-                            gr.HTML(
-                                value="<a class=\"hyperlink\" href=\"https://github.com/d8ahazard/sd_dreambooth_extension/releases/latest\">Release notes</a>",
-                            )
-            with gr.Column(variant="panel", elem_id="SettingsPanel"):
-                gr.HTML(value="<span class='hh'>Input</span>")
+
+                    def swap_model_box_visibility(db_create_new_model):
+                        return gr.update(visible=not db_create_new_model), gr.update(visible=db_create_new_model)
+
+                    db_create_new_db_model.change(
+                        fn=swap_model_box_visibility,
+                        inputs=[db_create_new_db_model],
+                        outputs=[select_existing_model_box, create_new_model_box],
+                    )
+
+                    with gr.Row():
+                        db_train_wizard_person = gr.Checkbox(label="Optimization for training Person", value=False)
+                        db_train_wizard_object = gr.Checkbox(label="Optimization for training Object/Style", value=False)
+                        db_performance_wizard = gr.Checkbox(label="Optimzation for training performance (WIP)", value=False)
+
                 with gr.Tab("Settings", elem_id="TabSettings"):
-                    db_performance_wizard = gr.Button(value="Performance Wizard (WIP)")
+                    with gr.Column():
+                        gr.HTML(value="SageMaker")
+                        db_training_instance_type = gr.Dropdown(label='Instance type', value="ml.g4dn.xlarge", choices=training_instance_types, interactive=True)
+                        db_training_instance_count = gr.Number(label='Instance count', value=1, precision=0, interactive=True)
+                        db_concepts_s3uri = gr.Textbox(label='Concepts S3 URI')
+                        db_models_s3uri = gr.Textbox(label='Models S3 URI')
+
                     with gr.Accordion(open=True, label="Basic"):
                         with gr.Column():
                             gr.HTML(value="General")
@@ -368,11 +359,6 @@ def on_ui_tabs():
                                 visible=False,
                             )
                             db_train_imagic_only = gr.Checkbox(label="Train Imagic Only", value=False)
-                            db_train_inpainting = gr.Checkbox(
-                                label="Train Inpainting Model",
-                                value=False,
-                                visible=False,
-                            )
                         with gr.Column():
                             gr.HTML(value="Intervals")
                             db_num_train_epochs = gr.Slider(
@@ -508,7 +494,7 @@ def on_ui_tabs():
                         with gr.Column():
                             gr.HTML(value="Tuning")
                             db_use_ema = gr.Checkbox(
-                                label="Use EMA", value=False
+                                label="Use EMA", value=False, interactive=True
                             )
                             db_optimizer = gr.Dropdown(
                                 label="Optimizer",
@@ -610,70 +596,85 @@ def on_ui_tabs():
                     with gr.Accordion(open=False, label="Advanced"):
                         with gr.Row():
                             with gr.Column():
-                                gr.HTML(value="Sanity Samples")
-                                db_sanity_prompt = gr.Textbox(
-                                    label="Sanity Sample Prompt",
-                                    placeholder="A generic prompt used to generate a sample image "
-                                                "to verify model fidelity.",
-                                )
-                                db_sanity_negative_prompt = gr.Textbox(
-                                    label="Sanity Sample Negative Prompt",
-                                    placeholder="A negative prompt for the generic sample image.",
-                                )
-                                db_sanity_seed = gr.Number(
-                                    label="Sanity Sample Seed", value=420420
-                                )
-
-                            with gr.Column():
-                                gr.HTML(value="Miscellaneous")
-                                db_pretrained_vae_name_or_path = gr.Textbox(
-                                    label="Pretrained VAE Name or Path",
-                                    placeholder="Leave blank to use base model VAE.",
-                                    value="",
-                                )
-                                db_use_concepts = gr.Checkbox(
-                                    label="Use Concepts List", value=False
-                                )
-                                db_concepts_path = gr.Textbox(
-                                    label="Concepts List",
-                                    placeholder="Path to JSON file with concepts to train.",
-                                )
-                                with gr.Row():
-                                    db_secret = gr.Textbox(
-                                        label="API Key", value=get_secret, interactive=False
+                                with gr.Column():
+                                    gr.HTML(value="Sanity Samples")
+                                    db_sanity_prompt = gr.Textbox(
+                                        label="Sanity Sample Prompt",
+                                        placeholder="A generic prompt used to generate a sample image "
+                                                    "to verify model fidelity.",
                                     )
-                                    db_refresh_button = gr.Button(
-                                        value=refresh_symbol, elem_id="refresh_secret"
+                                    db_sanity_negative_prompt = gr.Textbox(
+                                        label="Sanity Sample Negative Prompt",
+                                        placeholder="A negative prompt for the generic sample image.",
                                     )
-                                    db_clear_secret = gr.Button(
-                                        value=delete_symbol, elem_id="clear_secret"
+                                    db_sanity_seed = gr.Number(
+                                        label="Sanity Sample Seed", value=420420
                                     )
 
-                            with gr.Column():
-                                # In the future change this to something more generic and list the supported types
-                                # from DreamboothWebhookTarget enum; for now, Discord is what I use ;)
-                                # Add options to include notifications on training complete and exceptions that halt training
-                                db_notification_webhook_url = gr.Textbox(
-                                    label="Discord Webhook",
-                                    placeholder="https://discord.com/api/webhooks/XXX/XXXX",
-                                    value="",
-                                )
-                                notification_webhook_test_btn = gr.Button(
-                                    value="Save and Test Webhook"
-                                )
+                                with gr.Column():
+                                    gr.HTML(value="Miscellaneous")
+                                    db_pretrained_vae_name_or_path = gr.Textbox(
+                                        label="Pretrained VAE Name or Path",
+                                        placeholder="Leave blank to use base model VAE.",
+                                        value="",
+                                    )
+                                    db_use_concepts = gr.Checkbox(
+                                        label="Use Concepts List", value=False
+                                    )
+                                    db_concepts_path = gr.Textbox(
+                                        label="Concepts List",
+                                        placeholder="Path to JSON file with concepts to train.",
+                                    )
+                                    with gr.Row():
+                                        db_secret = gr.Textbox(
+                                            label="API Key", value=get_secret, interactive=False
+                                        )
+                                        db_refresh_button = gr.Button(
+                                            value=refresh_symbol, elem_id="refresh_secret"
+                                        )
+                                        db_clear_secret = gr.Button(
+                                            value=delete_symbol, elem_id="clear_secret"
+                                        )
+
+                                    db_class_gen_method = gr.Dropdown(
+                                        label="Image Generation Library",
+                                        value="Native Diffusers",
+                                        choices=[
+                                            "A1111 txt2img (Euler a)",
+                                            "Native Diffusers",
+                                        ]
+                                    )
+                                    db_scheduler = gr.Dropdown(
+                                        label="Image Generation Scheduler",
+                                        value="DEISMultistep",
+                                        choices=get_scheduler_names(),
+                                    )
+
+                                    db_deterministic = gr.Checkbox(label="Deterministic")
+                                    db_ema_predict = gr.Checkbox(label="Use EMA for prediction")
+                                    db_split_loss = gr.Checkbox(
+                                        label="Calculate Split Loss", value=True
+                                    )
+                                    db_tf32_enable = gr.Checkbox(
+                                        label="Use TensorFloat 32", value=False
+                                    )
+
+                                    db_noise_scheduler = gr.Dropdown(
+                                        label="Noise scheduler",
+                                        value="DDPM",
+                                        choices=[
+                                            "DDPM",
+                                            "DEIS",
+                                            "UniPC"
+                                        ]
+                                    )
+
 
                     with gr.Row():
                         with gr.Column(scale=2):
                             gr.HTML(value="")
                 with gr.Tab("Concepts", elem_id="TabConcepts") as concept_tab:
                     with gr.Column(variant="panel"):
-                        with gr.Row():
-                            db_train_wizard_person = gr.Button(
-                                value="Training Wizard (Person)"
-                            )
-                            db_train_wizard_object = gr.Button(
-                                value="Training Wizard (Object/Style)"
-                            )
                         with gr.Tab("Concept 1"):
                             (
                                 c1_instance_data_dir,
@@ -757,7 +758,8 @@ def on_ui_tabs():
                                 c4_save_guidance_scale,
                                 c4_save_infer_steps,
                             ) = build_concept_panel(4)
-                with gr.Tab("Saving", elme_id="TabSave"):
+
+                with gr.Tab("Saving"):
                     with gr.Column():
                         gr.HTML("General")
                         db_custom_model_name = gr.Textbox(
@@ -846,266 +848,14 @@ def on_ui_tabs():
                         db_save_state_cancel = gr.Checkbox(
                             label="Save separate diffusers snapshots when training is canceled."
                         )
-                with gr.Tab("Generate", elem_id="TabGenerate"):
-                    gr.HTML(value="Class Generation Schedulers")
-                    db_class_gen_method = gr.Dropdown(
-                        label="Image Generation Library",
-                        value="Native Diffusers",
-                        choices=[
-                            "A1111 txt2img (Euler a)",
-                            "Native Diffusers",
-                        ]
-                    )
-                    db_scheduler = gr.Dropdown(
-                        label="Image Generation Scheduler",
-                        value="DEISMultistep",
-                        choices=get_scheduler_names(),
-                    )
-                    gr.HTML(value="Manual Class Generation")
-                    with gr.Column():
-                        db_generate_classes = gr.Button(value="Generate Class Images")
-                        db_generate_graph = gr.Button(value="Generate Graph")
-                        db_graph_smoothing = gr.Slider(
-                            value=50,
-                            label="Graph Smoothing Steps",
-                            minimum=10,
-                            maximum=500,
-                        )
-                        db_debug_buckets = gr.Button(value="Debug Buckets")
-                        db_bucket_epochs = gr.Slider(
-                            value=10,
-                            step=1,
-                            minimum=1,
-                            maximum=1000,
-                            label="Epochs to Simulate",
-                        )
-                        db_bucket_batch = gr.Slider(
-                            value=1,
-                            step=1,
-                            minimum=1,
-                            maximum=500,
-                            label="Batch Size to Simulate",
-                        )
-                        db_generate_sample = gr.Button(value="Generate Sample Images")
-                        db_sample_prompt = gr.Textbox(label="Sample Prompt")
-                        db_sample_negative = gr.Textbox(label="Sample Negative Prompt")
-                        db_sample_prompt_file = gr.Textbox(label="Sample Prompt File")
-                        db_sample_width = gr.Slider(
-                            label="Sample Width",
-                            value=512,
-                            step=64,
-                            minimum=128,
-                            maximum=2048,
-                        )
-                        db_sample_height = gr.Slider(
-                            label="Sample Height",
-                            value=512,
-                            step=64,
-                            minimum=128,
-                            maximum=2048,
-                        )
-                        db_sample_seed = gr.Number(
-                            label="Sample Seed", value=-1, precision=0
-                        )
-                        db_num_samples = gr.Slider(
-                            label="Number of Samples to Generate",
-                            value=1,
-                            minimum=1,
-                            maximum=1000,
-                            step=1,
-                        )
-                        db_gen_sample_batch_size = gr.Slider(
-                            label="Sample Batch Size",
-                            value=1,
-                            step=1,
-                            minimum=1,
-                            maximum=100,
-                            interactive=True,
-                        )
-                        db_sample_steps = gr.Slider(
-                            label="Sample Steps",
-                            value=20,
-                            minimum=1,
-                            maximum=500,
-                            step=1,
-                        )
-                        db_sample_scale = gr.Slider(
-                            label="Sample CFG Scale",
-                            value=7.5,
-                            step=0.1,
-                            minimum=1,
-                            maximum=20,
-                        )
-                        with gr.Column(variant="panel", visible=has_face_swap()):
-                            db_swap_faces = gr.Checkbox(label="Swap Sample Faces")
-                            db_swap_prompt = gr.Textbox(label="Swap Prompt")
-                            db_swap_negative = gr.Textbox(label="Swap Negative Prompt")
-                            db_swap_steps = gr.Slider(label="Swap Steps", value=40)
-                            db_swap_batch = gr.Slider(label="Swap Batch", value=40)
 
-                        db_sample_txt2img = gr.Checkbox(
-                            label="Use txt2img",
-                            value=False,
-                            visible=False  # db_sample_txt2img not implemented yet
-                        )
-                with gr.Tab("Testing", elem_id="TabDebug"):
-                    gr.HTML(value="Experimental Settings")
-                    db_deterministic = gr.Checkbox(label="Deterministic")
-                    db_ema_predict = gr.Checkbox(label="Use EMA for prediction")
-                    db_split_loss = gr.Checkbox(
-                        label="Calculate Split Loss", value=True
-                    )
-                    db_tf32_enable = gr.Checkbox(
-                        label="Use TensorFloat 32", value=False
-                    )
-                    db_noise_scheduler = gr.Dropdown(
-                        label="Noise scheduler",
-                        value="DDPM",
-                        choices=[
-                            "DDPM",
-                            "DEIS",
-                            "UniPC"
-                        ]
-                    )
-                    db_update_extension = gr.Button(
-                        value="Update Extension and Restart"
-                    )
+        with gr.Row():
+            with gr.Column(scale=3):
+                db_status = gr.Label(label='Output')
+                training_job = gr.Markdown('Job detail')
 
-                    with gr.Column(variant="panel"):
-                        gr.HTML(value="Bucket Cropping")
-                        db_crop_src_path = gr.Textbox(label="Source Path")
-                        db_crop_dst_path = gr.Textbox(label="Dest Path")
-                        db_crop_max_res = gr.Slider(
-                            label="Max Res", value=512, step=64, maximum=2048
-                        )
-                        db_crop_bucket_step = gr.Slider(
-                            label="Bucket Steps", value=8, step=8, maximum=512
-                        )
-                        db_crop_dry = gr.Checkbox(label="Dry Run")
-                        db_start_crop = gr.Button("Start Cropping")
-            with gr.Column(variant="panel"):
-                gr.HTML(value="<span class='hh'>Output</span>")
-                db_check_progress_initial = gr.Button(
-                    value=update_symbol,
-                    elem_id="db_check_progress_initial",
-                    visible=False,
-                )
-                # These two should be updated while doing things
-                db_active = gr.Checkbox(elem_id="db_active", value=False, visible=False)
-
-                ui_check_progress_initial = gr.Button(
-                    value=update_symbol, elem_id="ui_check_progress_initial"
-                )
-                db_status = gr.HTML(elem_id="db_status", value="")
-                db_progressbar = gr.HTML(elem_id="db_progressbar")
-                db_gallery = gr.Gallery(
-                    label="Output", show_label=False, elem_id="db_gallery"
-                ).style(grid=4)
-                db_preview = gr.Image(elem_id="db_preview", visible=False)
-                db_prompt_list = gr.HTML(
-                    elem_id="db_prompt_list", value="", visible=False
-                )
-                db_gallery_prompt = gr.HTML(elem_id="db_gallery_prompt", value="")
-                db_check_progress = gr.Button(
-                    "Check Progress", elem_id=f"db_check_progress", visible=False
-                )
-                db_update_params = gr.Button(
-                    "Update Parameters", elem_id="db_update_params", visible=False
-                )
-                db_launch_error = gr.HTML(
-                    elem_id="launch_errors", visible=False, value=get_launch_errors
-                )
-
-                def check_toggles(
-                    use_lora, class_gen_method, lr_scheduler, train_unet, scale_prior
-                ):
-                    stop_text_encoder = update_stop_tenc(train_unet)
-                    (
-                        show_ema,
-                        use_lora_extended,
-                        lora_save,
-                        lora_lr,
-                        standard_lr,
-                        lora_model,
-                     ) = disable_lora(use_lora)
-                    (
-                        lr_power,
-                        lr_cycles,
-                        lr_scale_pos,
-                        lr_factor,
-                        learning_rate_min,
-                        lr_warmup_steps,
-                     ) = lr_scheduler_changed(lr_scheduler)
-                    scheduler = class_gen_method_changed(class_gen_method)
-                    loss_min, loss_tgt = toggle_loss_items(scale_prior)
-                    return (
-                        stop_text_encoder,
-                        show_ema,
-                        use_lora_extended,
-                        lora_save,
-                        lora_lr,
-                        lora_model,
-                        scheduler,
-                        lr_power,
-                        lr_cycles,
-                        lr_scale_pos,
-                        lr_factor,
-                        learning_rate_min,
-                        lr_warmup_steps,
-                        loss_min,
-                        loss_tgt,
-                        standard_lr
-                    )
-
-                db_start_crop.click(
-                    _js="db_start_crop",
-                    fn=start_crop,
-                    inputs=[
-                        db_crop_src_path,
-                        db_crop_dst_path,
-                        db_crop_max_res,
-                        db_crop_bucket_step,
-                        db_crop_dry,
-                    ],
-                    outputs=[db_status, db_gallery],
-                )
-
-                db_update_params.click(
-                    fn=check_toggles,
-                    inputs=[
-                        db_use_lora,
-                        db_class_gen_method,
-                        db_lr_scheduler,
-                        db_train_unet,
-                        db_prior_loss_scale,
-                    ],
-                    outputs=[
-                        db_stop_text_encoder,
-                        db_use_ema,
-                        db_use_lora_extended,
-                        lora_save_col,
-                        lora_lr_row,
-                        lora_model_row,
-                        db_scheduler,
-                        db_lr_power,
-                        db_lr_cycles,
-                        db_lr_scale_pos,
-                        db_lr_factor,
-                        db_learning_rate_min,
-                        db_lr_warmup_steps,
-                        db_prior_loss_weight_min,
-                        db_prior_loss_target,
-                        standard_lr_row,
-                    ],
-                )
-
-                db_update_extension.click(fn=update_extension, inputs=[], outputs=[])
-
-                notification_webhook_test_btn.click(
-                    fn=save_and_test_webhook,
-                    inputs=[db_notification_webhook_url],
-                    outputs=[db_status],
-                )
+            with gr.Column():
+                shared.create_train_dreambooth_component = db_train_model = gr.Button(value="Train", variant='primary')
 
                 db_refresh_button.click(
                     fn=create_secret, inputs=[], outputs=[db_secret]
@@ -1126,70 +876,140 @@ def on_ui_tabs():
 
                 db_clear_secret.click(fn=clear_secret, inputs=[], outputs=[db_secret])
 
-                # Elements to update when progress changes
-                progress_elements = [
-                    db_active,
-                    db_progressbar,
-                    db_preview,
-                    db_gallery,
-                    db_status,
-                    db_prompt_list,
-                    ui_check_progress_initial,
-                ]
+        def toggle_new_rows(create_from):
+            return gr.update(visible=create_from), gr.update(visible=not create_from)
 
-                db_check_progress.click(
-                    fn=lambda: check_progress_call(),
-                    show_progress=False,
-                    inputs=[],
-                    outputs=progress_elements,
-                )
+        def toggle_loss_items(scale):
+            return gr.update(visible=scale), gr.update(visible=scale)
 
-                db_check_progress_initial.click(
-                    fn=lambda: check_progress_call_initial(),
-                    show_progress=False,
-                    inputs=[],
-                    outputs=progress_elements,
-                )
+        db_create_from_hub.change(
+            fn=toggle_new_rows,
+            inputs=[db_create_from_hub],
+            outputs=[hub_row, local_row],
+        )
 
-                ui_check_progress_initial.click(
-                    fn=lambda: check_progress_call(),
-                    show_progress=False,
-                    inputs=[],
-                    outputs=progress_elements,
-                )
+        db_prior_loss_scale.change(
+            fn=toggle_loss_items,
+            inputs=[db_prior_loss_scale],
+            outputs=[db_prior_loss_weight_min, db_prior_loss_target],
+        )
 
-            def format_updates():
-                updates = check_updates()
-                strings = []
-                if updates is not None:
-                    for key, value in updates.items():
-                        rev = key
-                        title = value[0]
-                        author = value[1]
-                        date = value[2]
-                        url = value[3]
-                        title = f"<div class='commitDiv'><h3>{title}</h3><span>{author} - {date} - <a href='{url}'>{rev}</a><br></div>"
-                        strings.append(title)
-                return "\n".join(strings)
+        def disable_lora(x):
+            use_ema = gr.update(interactive=not x)
+            use_lora_extended = gr.update(visible=x)
+            lora_save = gr.update(visible=x)
+            lora_lr = gr.update(visible=x)
+            standard_lr = gr.update(visible=not x)
+            lora_model = gr.update(visible=x)
+            return (
+                use_ema,
+                use_lora_extended,
+                lora_save,
+                lora_lr,
+                standard_lr,
+                lora_model,
+            )
 
-            with gr.Row(variant="panel", elem_id="change_modal"):
-                with gr.Row():
-                    modal_title = gr.HTML("<h2>Changelog</h2>", elem_id="modal_title")
-                    close_modal = gr.Button(value="X", elem_id="close_modal")
-                with gr.Row():
-                    modal_release_notes = gr.HTML(
-                        "<h3><a href='https://github.com/d8ahazard/sd_dreambooth_extension/releases/latest'>Release notes</a></h3>",
-                        elem_id="modal_notes",
-                    )
-                with gr.Column():
-                    change_log = gr.HTML(format_updates(), elem_id="change_log")
+        def lr_scheduler_changed(sched):
+            show_scale_pos = gr.update(visible=False)
+            show_min_lr = gr.update(visible=False)
+            show_lr_factor = gr.update(visible=False)
+            show_lr_warmup = gr.update(visible=False)
+            show_lr_power = gr.update(visible=sched == "polynomial")
+            show_lr_cycles = gr.update(visible=sched == "cosine_with_restarts")
+            scale_scheds = [
+                "constant",
+                "linear",
+                "cosine_annealing",
+                "cosine_annealing_with_restarts",
+            ]
+            if sched in scale_scheds:
+                show_scale_pos = gr.update(visible=True)
+            else:
+                show_lr_warmup = gr.update(visible=True)
+            if sched in ["cosine_annealing", "cosine_annealing_with_restarts"]:
+                show_min_lr = gr.update(visible=True)
+            if sched in ["linear", "constant"]:
+                show_lr_factor = gr.update(visible=True)
+            return (
+                show_lr_power,
+                show_lr_cycles,
+                show_scale_pos,
+                show_lr_factor,
+                show_min_lr,
+                show_lr_warmup,
+            )
 
-        global params_to_save
-        global params_to_load
+        def class_gen_method_changed(method):
+            show_scheduler = method == "Native Diffusers"
+            scheduler = gr.update(visible=show_scheduler)
+            return scheduler
 
-        # List of all the things that we need to save
-        # db_model_name must be first due to save_config() parsing
-        params_to_save = [
+        db_use_lora.change(
+            fn=disable_lora,
+            inputs=[db_use_lora],
+            outputs=[
+                db_use_ema,
+                db_use_lora_extended,
+                lora_save_col,
+                lora_lr_row,
+                standard_lr_row,
+                lora_model_row,
+            ],
+        )
+
+        db_lr_scheduler.change(
+            fn=lr_scheduler_changed,
+            inputs=[db_lr_scheduler],
+            outputs=[
+                db_lr_power,
+                db_lr_cycles,
+                db_lr_scale_pos,
+                db_lr_factor,
+                db_learning_rate_min,
+                db_lr_warmup_steps,
+            ],
+        )
+
+        db_class_gen_method.change(
+            fn=class_gen_method_changed,
+            inputs=[db_class_gen_method],
+            outputs=[db_scheduler],
+        )
+
+        db_model_name.change(
+            _js="clear_loaded",
+            fn=load_model_params,
+            inputs=[db_model_name],
+            outputs=[
+                db_model_path,
+                db_revision,
+                db_epochs,
+                db_v2,
+                db_has_ema,
+                db_src,
+                db_snapshot,
+                db_lora_model_name,
+                db_status,
+            ],
+        )
+
+        db_use_concepts.change(
+            fn=lambda x: {concept_tab: gr_show(x is True)},
+            inputs=[db_use_concepts],
+            outputs=[concept_tab],
+        )
+
+        def sagemaker_train_dreambooth(
+            db_create_new_db_model,
+            db_new_model_name,
+            db_new_model_src,
+            db_create_from_hub,
+            db_new_model_url,
+            db_new_model_token,
+            db_new_model_extract_ema,
+            db_class_gen_method,
+            db_512_model,
             db_model_name,
             db_attention,
             db_cache_latents,
@@ -1206,7 +1026,6 @@ def on_ui_tabs():
             db_gradient_accumulation_steps,
             db_gradient_checkpointing,
             db_gradient_set_to_none,
-            db_graph_smoothing,
             db_half_model,
             db_hflip,
             db_infer_ema,
@@ -1342,325 +1161,411 @@ def on_ui_tabs():
             c4_save_sample_negative_prompt,
             c4_save_sample_prompt,
             c4_save_sample_template,
-        ]
-        # Do not load these values when 'load settings' is clicked
-        params_to_exclude = [
-            db_model_name,
-            db_epochs,
-            db_model_path,
-            db_revision,
-            db_src,
-        ]
+            db_train_wizard_person,
+            db_train_wizard_object,
+            db_performance_wizard,
+            db_training_instance_type,
+            db_training_instance_count,
+            db_concepts_s3uri,
+            db_models_s3uri,
+            request : gr.Request
+        ):
+            username = shared.get_webui_username(request)
 
-        # Populate by the below method and handed out to other elements
-        params_to_load = []
-        save_keys = []
-        ui_keys = []
-
-        for param in params_to_save:
-            var_name = [var_name for var_name, var in locals().items() if var is param]
-            save_keys.append(var_name[0])
-            if param not in params_to_exclude:
-                ui_keys.append(var_name[0])
-                params_to_load.append(param)
-
-        ui_keys.append("db_status")
-        params_to_load.append(db_status)
-        from dreambooth.dataclasses import db_config
-        db_config.save_keys = save_keys
-        db_config.ui_keys = ui_keys
-
-        db_save_params.click(
-            _js="check_save", fn=save_config, inputs=params_to_save, outputs=[]
-        )
-
-        db_load_params.click(
-            _js="db_start_load_params",
-            fn=load_params,
-            inputs=[db_model_name],
-            outputs=params_to_load,
-        )
-
-        def toggle_new_rows(create_from):
-            return gr.update(visible=create_from), gr.update(visible=not create_from)
-
-        def toggle_loss_items(scale):
-            return gr.update(visible=scale), gr.update(visible=scale)
-
-        db_create_from_hub.change(
-            fn=toggle_new_rows,
-            inputs=[db_create_from_hub],
-            outputs=[hub_row, local_row],
-        )
-
-        db_prior_loss_scale.change(
-            fn=toggle_loss_items,
-            inputs=[db_prior_loss_scale],
-            outputs=[db_prior_loss_weight_min, db_prior_loss_target],
-        )
-
-        def disable_lora(x):
-            use_ema = gr.update(interactive=not x)
-            use_lora_extended = gr.update(visible=x)
-            lora_save = gr.update(visible=x)
-            lora_lr = gr.update(visible=x)
-            standard_lr = gr.update(visible=not x)
-            lora_model = gr.update(visible=x)
-            return (
-                use_ema,
-                use_lora_extended,
-                lora_save,
-                lora_lr,
-                standard_lr,
-                lora_model,
-            )
-
-        def lr_scheduler_changed(sched):
-            show_scale_pos = gr.update(visible=False)
-            show_min_lr = gr.update(visible=False)
-            show_lr_factor = gr.update(visible=False)
-            show_lr_warmup = gr.update(visible=False)
-            show_lr_power = gr.update(visible=sched == "polynomial")
-            show_lr_cycles = gr.update(visible=sched == "cosine_with_restarts")
-            scale_scheds = [
-                "constant",
-                "linear",
-                "cosine_annealing",
-                "cosine_annealing_with_restarts",
-            ]
-            if sched in scale_scheds:
-                show_scale_pos = gr.update(visible=True)
-            else:
-                show_lr_warmup = gr.update(visible=True)
-            if sched in ["cosine_annealing", "cosine_annealing_with_restarts"]:
-                show_min_lr = gr.update(visible=True)
-            if sched in ["linear", "constant"]:
-                show_lr_factor = gr.update(visible=True)
-            return (
-                show_lr_power,
-                show_lr_cycles,
-                show_scale_pos,
-                show_lr_factor,
-                show_min_lr,
-                show_lr_warmup,
-            )
-
-        def optimizer_changed(opti):
-            show_adapt = opti in ["SGD Dadaptation", "AdaGrad Dadaptation", "AdamW Dadaptation", "Adan Dadaptation"]
-            adaptation_lr = gr.update(visible=show_adapt)
-            return adaptation_lr
-
-        def class_gen_method_changed(method):
-            show_scheduler = method == "Native Diffusers"
-            scheduler = gr.update(visible=show_scheduler)
-            return scheduler
-
-        db_use_lora.change(
-            fn=disable_lora,
-            inputs=[db_use_lora],
-            outputs=[
-                db_use_ema,
-                db_use_lora_extended,
-                lora_save_col,
-                lora_lr_row,
-                standard_lr_row,
-                lora_model_row,
-            ],
-        )
-
-        db_lr_scheduler.change(
-            fn=lr_scheduler_changed,
-            inputs=[db_lr_scheduler],
-            outputs=[
-                db_lr_power,
-                db_lr_cycles,
-                db_lr_scale_pos,
-                db_lr_factor,
-                db_learning_rate_min,
-                db_lr_warmup_steps,
-            ],
-        )
-
-        db_class_gen_method.change(
-            fn=class_gen_method_changed,
-            inputs=[db_class_gen_method],
-            outputs=[db_scheduler],
-        )
-
-        db_model_name.change(
-            _js="clear_loaded",
-            fn=load_model_params,
-            inputs=[db_model_name],
-            outputs=[
-                db_model_path,
-                db_revision,
-                db_epochs,
-                db_v2,
-                db_has_ema,
-                db_src,
-                db_snapshot,
-                db_lora_model_name,
-                db_status,
-            ],
-        )
-
-        db_use_concepts.change(
-            fn=lambda x: {concept_tab: gr_show(x is True)},
-            inputs=[db_use_concepts],
-            outputs=[concept_tab],
-        )
-
-        db_generate_graph.click(
-            _js="db_start_logs",
-            fn=log_parser.parse_logs,
-            inputs=[db_model_name, gr.Checkbox(value=True, visible=False)],
-            outputs=[db_gallery, db_prompt_list],
-        )
-
-        db_debug_buckets.click(
-            _js="db_start_buckets",
-            fn=debug_buckets,
-            inputs=[db_model_name, db_bucket_epochs, db_bucket_batch],
-            outputs=[db_status, db_status],
-        )
-
-        db_performance_wizard.click(
-            fn=performance_wizard,
-            _js="db_start_pwizard",
-            inputs=[db_model_name],
-            outputs=[
-                db_attention,
-                db_gradient_checkpointing,
-                db_gradient_accumulation_steps,
-                db_mixed_precision,
-                db_cache_latents,
-                db_optimizer,
-                db_sample_batch_size,
-                db_train_batch_size,
-                db_stop_text_encoder,
-                db_use_lora,
-                db_use_ema,
-                db_save_preview_every,
-                db_save_embedding_every,
-                db_status,
-            ],
-        )
-
-        db_train_wizard_person.click(
-            fn=training_wizard_person,
-            _js="db_start_twizard",
-            inputs=[db_model_name],
-            outputs=[
-                db_num_train_epochs,
-                c1_num_class_images_per,
-                c2_num_class_images_per,
-                c3_num_class_images_per,
-                c4_num_class_images_per,
-                db_status,
-            ],
-        )
-
-        db_train_wizard_object.click(
-            fn=training_wizard,
-            _js="db_start_twizard",
-            inputs=[db_model_name],
-            outputs=[
-                db_num_train_epochs,
-                c1_num_class_images_per,
-                c2_num_class_images_per,
-                c3_num_class_images_per,
-                c4_num_class_images_per,
-                db_status,
-            ],
-        )
-
-        db_generate_sample.click(
-            fn=wrap_gpu_call(generate_samples),
-            _js="db_start_sample",
-            inputs=[
+            params_to_save = [
                 db_model_name,
-                db_sample_prompt,
-                db_sample_prompt_file,
-                db_sample_negative,
-                db_sample_width,
-                db_sample_height,
-                db_num_samples,
+                db_attention,
+                db_cache_latents,
+                db_clip_skip,
+                db_concepts_path,
+                db_custom_model_name,
+                db_noise_scheduler,
+                db_deterministic,
+                db_ema_predict,
+                db_epochs,
+                db_epoch_pause_frequency,
+                db_epoch_pause_time,
+                db_freeze_clip_normalization,
+                db_gradient_accumulation_steps,
+                db_gradient_checkpointing,
+                db_gradient_set_to_none,
+                db_half_model,
+                db_hflip,
+                db_infer_ema,
+                db_learning_rate,
+                db_learning_rate_min,
+                db_lora_learning_rate,
+                db_lora_model_name,
+                db_lora_unet_rank,
+                db_lora_txt_rank,
+                db_lora_txt_learning_rate,
+                db_lora_txt_weight,
+                db_lora_weight,
+                db_lr_cycles,
+                db_lr_factor,
+                db_lr_power,
+                db_lr_scale_pos,
+                db_lr_scheduler,
+                db_lr_warmup_steps,
+                db_max_token_length,
+                db_mixed_precision,
+                db_adamw_weight_decay,
+                db_model_path,
+                db_num_train_epochs,
+                db_offset_noise,
+                db_optimizer,
+                db_pad_tokens,
+                db_pretrained_vae_name_or_path,
+                db_prior_loss_scale,
+                db_prior_loss_target,
+                db_prior_loss_weight,
+                db_prior_loss_weight_min,
+                db_resolution,
+                db_revision,
                 db_sample_batch_size,
-                db_sample_seed,
-                db_sample_steps,
-                db_sample_scale,
-                db_sample_txt2img,
+                db_sanity_prompt,
+                db_sanity_seed,
+                db_save_ckpt_after,
+                db_save_ckpt_cancel,
+                db_save_ckpt_during,
+                db_save_embedding_every,
+                db_save_ema,
+                db_save_lora_after,
+                db_save_lora_cancel,
+                db_save_lora_during,
+                db_save_lora_for_extra_net,
+                db_save_preview_every,
+                db_save_safetensors,
+                db_save_state_after,
+                db_save_state_cancel,
+                db_save_state_during,
                 db_scheduler,
-                db_swap_faces,
-                db_swap_prompt,
-                db_swap_negative,
-                db_swap_steps,
-                db_swap_batch,
-            ],
-            outputs=[db_gallery, db_prompt_list, db_status],
-        )
+                db_split_loss,
+                db_strict_tokens,
+                db_shuffle_tags,
+                db_snapshot,
+                db_src,
+                db_tf32_enable,
+                db_train_batch_size,
+                db_train_imagic_only,
+                db_train_unet,
+                db_stop_text_encoder,
+                db_use_concepts,
+                db_train_unfrozen,
+                db_use_ema,
+                db_use_lora,
+                db_use_lora_extended,
+                db_use_subdir,
+                c1_class_data_dir,
+                c1_class_guidance_scale,
+                c1_class_infer_steps,
+                c1_class_negative_prompt,
+                c1_class_prompt,
+                c1_class_token,
+                c1_instance_data_dir,
+                c1_instance_prompt,
+                c1_instance_token,
+                c1_n_save_sample,
+                c1_num_class_images_per,
+                c1_sample_seed,
+                c1_save_guidance_scale,
+                c1_save_infer_steps,
+                c1_save_sample_negative_prompt,
+                c1_save_sample_prompt,
+                c1_save_sample_template,
+                c2_class_data_dir,
+                c2_class_guidance_scale,
+                c2_class_infer_steps,
+                c2_class_negative_prompt,
+                c2_class_prompt,
+                c2_class_token,
+                c2_instance_data_dir,
+                c2_instance_prompt,
+                c2_instance_token,
+                c2_n_save_sample,
+                c2_num_class_images_per,
+                c2_sample_seed,
+                c2_save_guidance_scale,
+                c2_save_infer_steps,
+                c2_save_sample_negative_prompt,
+                c2_save_sample_prompt,
+                c2_save_sample_template,
+                c3_class_data_dir,
+                c3_class_guidance_scale,
+                c3_class_infer_steps,
+                c3_class_negative_prompt,
+                c3_class_prompt,
+                c3_class_token,
+                c3_instance_data_dir,
+                c3_instance_prompt,
+                c3_instance_token,
+                c3_n_save_sample,
+                c3_num_class_images_per,
+                c3_sample_seed,
+                c3_save_guidance_scale,
+                c3_save_infer_steps,
+                c3_save_sample_negative_prompt,
+                c3_save_sample_prompt,
+                c3_save_sample_template,
+                c4_class_data_dir,
+                c4_class_guidance_scale,
+                c4_class_infer_steps,
+                c4_class_negative_prompt,
+                c4_class_prompt,
+                c4_class_token,
+                c4_instance_data_dir,
+                c4_instance_prompt,
+                c4_instance_token,
+                c4_n_save_sample,
+                c4_num_class_images_per,
+                c4_sample_seed,
+                c4_save_guidance_scale,
+                c4_save_infer_steps,
+                c4_save_sample_negative_prompt,
+                c4_save_sample_prompt,
+                c4_save_sample_template
+            ]
 
-        db_generate_checkpoint.click(
-            _js="db_start_checkpoint",
-            fn=wrap_gpu_call(ui_gen_ckpt),
-            inputs=[db_model_name],
-            outputs=[db_status],
-        )
+            dreambooth_config_id = str(uuid.uuid4())
+            params = {'dreambooth_config_id': dreambooth_config_id}
+            params_dict = dict(zip(save_keys, params_to_save))
+            response = requests.post(url=f'{shared.api_endpoint}/sd/models', json=params_dict, params=params)
 
-        def set_gen_ckpt():
-            status.do_save_model = True
+            if response.status_code != 200:
+                return {
+                    db_status: gr.update(value=response.text)
+                }
 
-        def set_gen_sample():
-            status.do_save_samples = True
+            train_args = {
+                'train_dreambooth_settings': {
+                    'db_create_new_db_model': db_create_new_db_model,
+                    'db_new_model_name': db_new_model_name,
+                    'db_new_model_src': db_new_model_src,
+                    'db_create_from_hub': db_create_from_hub,
+                    'db_new_model_url': db_new_model_url,
+                    'db_new_model_token': db_new_model_token,
+                    'db_new_model_extract_ema': db_new_model_extract_ema,
+                    'db_train_unfrozen': db_train_unfrozen,
+                    'db_512_model': db_512_model,
+                    'db_model_name': db_model_name,
+                    'db_train_wizard_person': db_train_wizard_person,
+                    'db_train_wizard_object': db_train_wizard_object,
+                    'db_performance_wizard': db_performance_wizard,
+                    'db_lora_model_name': db_lora_model_name,
+                    'db_class_gen_method': db_class_gen_method
+                }
+            }
 
-        db_generate_checkpoint_during.click(fn=set_gen_ckpt, inputs=[], outputs=[])
+            hyperparameters = {
+                'train-args': json.dumps(json.dumps(train_args)),
+                'train-task': 'dreambooth',
+                'username': username,
+                'api-endpoint': shared.api_endpoint,
+                'dreambooth-config-id': dreambooth_config_id
+            }
 
-        db_train_sample.click(fn=set_gen_sample, inputs=[], outputs=[])
+            inputs = {
+                'concepts': db_concepts_s3uri,
+                'models': db_models_s3uri
+            }
 
-        db_create_model.click(
-            fn=wrap_gpu_call(create_model),
-            _js="db_start_create",
+            data = {
+                'training_job_name': '',
+                'model_algorithm': 'stable-diffusion-webui',
+                'model_hyperparameters': hyperparameters,
+                'industrial_model': shared.industrial_model,
+                'instance_type': db_training_instance_type,
+                'instance_count': db_training_instance_count,
+                'inputs': inputs
+            }
+
+            response = requests.post(url=f'{shared.api_endpoint}/train', json=data)
+            if response.status_code == 200:
+                training_job_url = response.text.replace('\"','')
+                return {
+                    db_status: gr.update(value=f'Submit training job sucessful'),
+                    training_job:gr.update(value=f'Job detail:[{training_job_url}]({training_job_url})')
+                }
+            else:
+                return {
+                    db_status: gr.update(value=response.text)
+                }
+
+        db_train_model.click(
+            fn=sagemaker_train_dreambooth,
             inputs=[
+                db_create_new_db_model,
                 db_new_model_name,
                 db_new_model_src,
                 db_create_from_hub,
                 db_new_model_url,
                 db_new_model_token,
                 db_new_model_extract_ema,
-                db_train_unfrozen,
+                db_class_gen_method,
                 db_512_model,
+                db_model_name,
+                db_attention,
+                db_cache_latents,
+                db_clip_skip,
+                db_concepts_path,
+                db_custom_model_name,
+                db_noise_scheduler,
+                db_deterministic,
+                db_ema_predict,
+                db_epochs,
+                db_epoch_pause_frequency,
+                db_epoch_pause_time,
+                db_freeze_clip_normalization,
+                db_gradient_accumulation_steps,
+                db_gradient_checkpointing,
+                db_gradient_set_to_none,
+                db_half_model,
+                db_hflip,
+                db_infer_ema,
+                db_learning_rate,
+                db_learning_rate_min,
+                db_lora_learning_rate,
+                db_lora_model_name,
+                db_lora_unet_rank,
+                db_lora_txt_rank,
+                db_lora_txt_learning_rate,
+                db_lora_txt_weight,
+                db_lora_weight,
+                db_lr_cycles,
+                db_lr_factor,
+                db_lr_power,
+                db_lr_scale_pos,
+                db_lr_scheduler,
+                db_lr_warmup_steps,
+                db_max_token_length,
+                db_mixed_precision,
+                db_adamw_weight_decay,
+                db_model_path,
+                db_num_train_epochs,
+                db_offset_noise,
+                db_optimizer,
+                db_pad_tokens,
+                db_pretrained_vae_name_or_path,
+                db_prior_loss_scale,
+                db_prior_loss_target,
+                db_prior_loss_weight,
+                db_prior_loss_weight_min,
+                db_resolution,
+                db_revision,
+                db_sample_batch_size,
+                db_sanity_prompt,
+                db_sanity_seed,
+                db_save_ckpt_after,
+                db_save_ckpt_cancel,
+                db_save_ckpt_during,
+                db_save_embedding_every,
+                db_save_ema,
+                db_save_lora_after,
+                db_save_lora_cancel,
+                db_save_lora_during,
+                db_save_lora_for_extra_net,
+                db_save_preview_every,
+                db_save_safetensors,
+                db_save_state_after,
+                db_save_state_cancel,
+                db_save_state_during,
+                db_scheduler,
+                db_split_loss,
+                db_strict_tokens,
+                db_shuffle_tags,
+                db_snapshot,
+                db_src,
+                db_tf32_enable,
+                db_train_batch_size,
+                db_train_imagic_only,
+                db_train_unet,
+                db_stop_text_encoder,
+                db_use_concepts,
+                db_train_unfrozen,
+                db_use_ema,
+                db_use_lora,
+                db_use_lora_extended,
+                db_use_subdir,
+                c1_class_data_dir,
+                c1_class_guidance_scale,
+                c1_class_infer_steps,
+                c1_class_negative_prompt,
+                c1_class_prompt,
+                c1_class_token,
+                c1_instance_data_dir,
+                c1_instance_prompt,
+                c1_instance_token,
+                c1_n_save_sample,
+                c1_num_class_images_per,
+                c1_sample_seed,
+                c1_save_guidance_scale,
+                c1_save_infer_steps,
+                c1_save_sample_negative_prompt,
+                c1_save_sample_prompt,
+                c1_save_sample_template,
+                c2_class_data_dir,
+                c2_class_guidance_scale,
+                c2_class_infer_steps,
+                c2_class_negative_prompt,
+                c2_class_prompt,
+                c2_class_token,
+                c2_instance_data_dir,
+                c2_instance_prompt,
+                c2_instance_token,
+                c2_n_save_sample,
+                c2_num_class_images_per,
+                c2_sample_seed,
+                c2_save_guidance_scale,
+                c2_save_infer_steps,
+                c2_save_sample_negative_prompt,
+                c2_save_sample_prompt,
+                c2_save_sample_template,
+                c3_class_data_dir,
+                c3_class_guidance_scale,
+                c3_class_infer_steps,
+                c3_class_negative_prompt,
+                c3_class_prompt,
+                c3_class_token,
+                c3_instance_data_dir,
+                c3_instance_prompt,
+                c3_instance_token,
+                c3_n_save_sample,
+                c3_num_class_images_per,
+                c3_sample_seed,
+                c3_save_guidance_scale,
+                c3_save_infer_steps,
+                c3_save_sample_negative_prompt,
+                c3_save_sample_prompt,
+                c3_save_sample_template,
+                c4_class_data_dir,
+                c4_class_guidance_scale,
+                c4_class_infer_steps,
+                c4_class_negative_prompt,
+                c4_class_prompt,
+                c4_class_token,
+                c4_instance_data_dir,
+                c4_instance_prompt,
+                c4_instance_token,
+                c4_n_save_sample,
+                c4_num_class_images_per,
+                c4_sample_seed,
+                c4_save_guidance_scale,
+                c4_save_infer_steps,
+                c4_save_sample_negative_prompt,
+                c4_save_sample_prompt,
+                c4_save_sample_template,
+                db_train_wizard_person,
+                db_train_wizard_object,
+                db_performance_wizard,
+                db_training_instance_type,
+                db_training_instance_count,
+                db_concepts_s3uri,
+                db_models_s3uri
             ],
             outputs=[
-                db_model_name,
-                db_model_path,
-                db_revision,
-                db_epochs,
-                db_src,
-                db_has_ema,
-                db_v2,
-                db_resolution,
                 db_status,
-            ],
-        )
-
-        db_train_model.click(
-            fn=wrap_gpu_call(start_training),
-            _js="db_start_train",
-            inputs=[db_model_name, db_class_gen_method],
-            outputs=[db_lora_model_name, db_revision, db_epochs, db_gallery, db_status],
-        )
-
-        db_generate_classes.click(
-            _js="db_start_classes",
-            fn=wrap_gpu_call(ui_classifiers),
-            inputs=[db_model_name, db_class_gen_method],
-            outputs=[db_gallery, db_status],
-        )
-
-        db_cancel.click(
-            fn=lambda: status.interrupt(),
-            inputs=[],
-            outputs=[],
+                training_job
+            ]
         )
 
     return ((dreambooth_interface, "Dreambooth", "dreambooth_interface"),)
