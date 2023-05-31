@@ -175,36 +175,51 @@ def train_dreambooth(api_endpoint, train_args, sd_models_s3uri, db_models_s3uri,
 
     try:
         print('Uploading SD Models...')
+        s3uri = f'{sd_models_s3uri}{username}/'
+        if username == '':
+            s3uri = s3uri[0 : s3uri.rfind('/')] + '/'
         if db_config.v2:
             shared.upload_s3files(
-                f'{sd_models_s3uri}{username}/',
+                s3uri,
                 os.path.join(sd_models_dir, db_model_name, f'{db_model_name}_*.yaml')
             )
         if db_config.save_safetensors:
             shared.upload_s3files(
-                f'{sd_models_s3uri}{username}/',
+                s3uri,
                 os.path.join(sd_models_dir, db_model_name, f'{db_model_name}_*.safetensors')
             )
         else:
             shared.upload_s3files(
-                f'{sd_models_s3uri}{username}/',
+                s3uri,
                 os.path.join(sd_models_dir, db_model_name, f'{db_model_name}_*.ckpt')
             )
+
         print('Uploading DB Models...')
+        if username == '':
+            s3uri = f'{db_models_s3uri}{db_model_name}'
+        else:
+            s3uri = f'{db_models_s3uri}{username}/{db_model_name}'
         shared.upload_s3folder(
-            f'{db_models_s3uri}{username}/{db_model_name}',
+            s3uri,
             os.path.join(db_model_dir, db_model_name)
         )
+
         if db_config.use_lora:
+            if username == '':
+                s3uri = f'{lora_models_s3uri}'
+            else:
+                s3uri = f'{lora_models_s3uri}{username}/'
             print('Uploading Lora Models...')
             shared.upload_s3files(
-                f'{lora_models_s3uri}{username}/',
+                s3uri,
                 os.path.join(lora_model_dir, f'{db_model_name}_*.pt')
             )
+
         #automatic tar latest checkpoint and upload to s3 by zheng on 2023.03.22
         os.makedirs(os.path.dirname("/opt/ml/model/"), exist_ok=True)
         os.makedirs(os.path.dirname("/opt/ml/model/Stable-diffusion/"), exist_ok=True)
         os.makedirs(os.path.dirname("/opt/ml/model/ControlNet/"), exist_ok=True)
+
         train_steps=int(db_config.revision)
         model_file_basename = f'{db_model_name}_{train_steps}_lora' if db_config.use_lora else f'{db_model_name}_{train_steps}'
         if db_config.v2:
