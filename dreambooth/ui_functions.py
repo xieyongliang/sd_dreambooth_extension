@@ -750,8 +750,7 @@ def start_training_from_config(config: DreamboothConfig, class_gen_method: str =
         traceback.print_exc()
         pass
 
-    return total_steps, config.epoch, images, res
-
+    return images, res
 
 def reload_extension():
     ext_name = "extensions.sd_dreambooth_extension"
