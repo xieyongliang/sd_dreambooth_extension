@@ -750,14 +750,7 @@ def start_training_from_config(config: DreamboothConfig, class_gen_method: str =
         traceback.print_exc()
         pass
 
-    cleanup()
-    reload_system_models()
-    lora_model_name = ""
-    if config.lora_model_name:
-        lora_model_name = f"{config.model_name}_{total_steps}.pt"
-    dirs = get_lora_models()
-    lora_model_name = gr_update(choices=sorted(dirs), value=lora_model_name)
-    return lora_model_name, total_steps, config.epoch, images, res
+    return total_steps, config.epoch, images, res
 
 
 def reload_extension():
