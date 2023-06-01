@@ -471,14 +471,7 @@ def start_training_from_config(config: DreamboothConfig, use_txt2img: bool = Tru
         traceback.print_exc()
         pass
 
-    cleanup()
-    if webui:
-        reload_system_models()
-    if config.lora_model_name != "" and config.lora_model_name is not None:
-        lora_model_name = f"{config.model_name}_{total_steps}.pt"
-    lora_model_name = config.lora_model_name
-    return lora_model_name, total_steps, config.epoch, images, res
-
+    return images, res
 
 def ui_classifiers(model_name: str,
                    use_txt2img: bool):
