@@ -150,16 +150,10 @@ def train_dreambooth(api_endpoint, train_args, sd_models_s3uri, db_models_s3uri,
     except:
         cmd_dreambooth_models_path = None
 
-    try:
-        cmd_lora_models_path = shared.cmd_opts.lora_models_path
-    except:
-        cmd_lora_models_path = None
-
     db_model_dir = os.path.dirname(cmd_dreambooth_models_path) if cmd_dreambooth_models_path else paths.models_path
     db_model_dir = os.path.join(db_model_dir, "dreambooth")
 
-    lora_model_dir = os.path.dirname(cmd_lora_models_path) if cmd_lora_models_path else paths.models_path
-    lora_model_dir = os.path.join(lora_model_dir, "lora")
+    lora_model_dir = os.path.join(paths.models_path, "lora")
 
     print('---models path---', sd_models_dir, lora_model_dir)
     print(os.system(f'ls -l {sd_models_dir}'))
@@ -208,10 +202,7 @@ def train_dreambooth(api_endpoint, train_args, sd_models_s3uri, db_models_s3uri,
                 os.path.join(lora_model_dir, f'{db_model_name}_*.pt')
             )
 
-        #automatic tar latest checkpoint and upload to s3 by zheng on 2023.03.22
-        os.makedirs(os.path.dirname("/opt/ml/model/"), exist_ok=True)
         os.makedirs(os.path.dirname("/opt/ml/model/Stable-diffusion/"), exist_ok=True)
-        os.makedirs(os.path.dirname("/opt/ml/model/ControlNet/"), exist_ok=True)
 
         train_steps=int(db_config.revision)
         model_file_basename = f'{db_model_name}_{train_steps}_lora' if db_config.use_lora else f'{db_model_name}_{train_steps}'
