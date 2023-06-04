@@ -37,7 +37,6 @@ def train_dreambooth(api_endpoint, train_args, sd_models_s3uri, db_models_s3uri,
                 db_train_unfrozen,
                 db_512_model
             )
-        print(result)
         if db_create_from_hub:
             db_model_name, db_model_path, db_revision, db_epochs, db_scheduler, db_src, db_has_ema, db_v2, db_resolution = result
         else:
@@ -153,12 +152,7 @@ def train_dreambooth(api_endpoint, train_args, sd_models_s3uri, db_models_s3uri,
     db_model_dir = os.path.dirname(cmd_dreambooth_models_path) if cmd_dreambooth_models_path else paths.models_path
     db_model_dir = os.path.join(db_model_dir, "dreambooth")
 
-    lora_model_dir = os.path.join(db_model_dir, "lora")
-
-    print('---models path---', sd_models_dir, lora_model_dir)
-    print(os.system(f'ls -l {sd_models_dir}'))
-    print(os.system('ls -l {0}'.format(os.path.join(sd_models_dir, db_model_name))))
-    print(os.system(f'ls -l {lora_model_dir}'))
+    lora_model_dir = os.path.join(db_model_dir, "loras")
 
     try:
         print('Uploading SD Models...')

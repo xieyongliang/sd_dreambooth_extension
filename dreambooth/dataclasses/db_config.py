@@ -132,22 +132,18 @@ class DreamboothConfig(BaseModel):
         model_name = sanitize_name(model_name)
         models_path = shared.dreambooth_models_path
 
-        print(f"1. Models path set to: {models_path}")
         if models_path == "" or models_path is None:
             models_path = os.path.join(shared.models_path, "dreambooth")
 
-        print(f"2. Models path set to: {models_path}")
         # If we're using the new UI, this should be populated, so load models from here.
         if len(shared.paths):
             models_path = os.path.join(shared.paths["models"], "dreambooth")
-
-        print(f"3. Models path set to: {models_path}")
 
         if not self.use_lora:
             self.lora_model_name = ""
 
         model_dir = os.path.join(models_path, model_name)
-        print(f"4. Model dir set to: {model_dir}")
+
         working_dir = os.path.join(model_dir, "working")
 
         if not os.path.exists(working_dir):
