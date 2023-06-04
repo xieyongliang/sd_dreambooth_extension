@@ -152,7 +152,7 @@ def train_dreambooth(api_endpoint, train_args, sd_models_s3uri, db_models_s3uri,
     db_model_dir = os.path.dirname(cmd_dreambooth_models_path) if cmd_dreambooth_models_path else paths.models_path
     db_model_dir = os.path.join(db_model_dir, "dreambooth")
 
-    lora_model_dir = os.path.join(db_model_dir, "loras")
+    lora_model_dir = os.path.join(db_model_dir, db_model_name, "loras")
 
     try:
         print('Uploading SD Models...')
