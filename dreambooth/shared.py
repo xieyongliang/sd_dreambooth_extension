@@ -43,7 +43,7 @@ def load_auto_settings():
         lowvram = ws.cmd_opts.lowvram
         config = ws.cmd_opts.config
         device = ws.device
-        sd_model = ws.sd_model
+        sd_model = ws.sd_model if not ws.cmd_opts.pureui else None
 
         def set_model(new_model):
             global sd_model
