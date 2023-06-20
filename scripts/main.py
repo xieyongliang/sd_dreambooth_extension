@@ -855,7 +855,7 @@ def on_ui_tabs():
                 training_job = gr.Markdown('Job detail')
 
             with gr.Column():
-                shared.create_train_dreambooth_component = db_train_model = gr.Button(value="Train", variant='primary')
+                shared.create_train_dreambooth_component = db_train_model = gr.Button(value="Train Dreambooth", variant='primary')
 
                 db_refresh_button.click(
                     fn=create_secret, inputs=[], outputs=[db_secret]
