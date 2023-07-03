@@ -37,10 +37,8 @@ def train_dreambooth(api_endpoint, train_args, sd_models_s3uri, db_models_s3uri,
                 db_train_unfrozen,
                 db_512_model
             )
-        if db_create_from_hub:
-            db_model_name, db_model_path, db_revision, db_epochs, db_scheduler, db_src, db_has_ema, db_v2, db_resolution = result
-        else:
-            db_model_name, db_model_path, db_revision, db_epochs, db_src, db_has_ema, db_v2, db_resolution = result
+        print(result)
+        db_model_name, db_model_path, db_revision, db_epochs, db_scheduler, db_src, db_has_ema, db_v2, db_resolution = result
         dreambooth_config_id = shared.cmd_opts.dreambooth_config_id
         try:
             with open(f'/opt/ml/input/data/config/{dreambooth_config_id}.json', 'r') as f:
