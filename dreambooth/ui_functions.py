@@ -958,7 +958,7 @@ def create_model(
             print(err_msg)
             if sh is not None:
                 sh.end(desc=err_msg)
-            return "", "", 0, 0, "", "", "", "", res, "", err_msg
+            return "", "", 0, 0, "", "", "", "", res
         ckpt_path = checkpoint_info.filename
 
     unload_system_models()
