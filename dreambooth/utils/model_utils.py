@@ -115,8 +115,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 def get_db_models():
     output = [""]
-    from modules import shared as auto_shared
-    if auto_shared.cmd_opts.pureui:
+    if 'api_endpoint' in os.environ:
         api_endpoint = os.environ['api_endpoint']
         params = {'module': 'dreambooth'}
         response = requests.get(url=f'{api_endpoint}/sd/models', params=params)
