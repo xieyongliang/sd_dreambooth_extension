@@ -136,8 +136,7 @@ def get_db_models():
 
 def get_lora_models(config: DreamboothConfig = None):
     output = [""]
-    from modules import shared as auto_shared
-    if auto_shared.cmd_opts.pureui:
+    if 'api_endpoint' in os.environ:
         api_endpoint = os.environ['api_endpoint']
         params = {'module': 'lora'}
         response = requests.get(url=f'{api_endpoint}/sd/models', params=params)
