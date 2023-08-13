@@ -66,10 +66,6 @@ from lora_diffusion.lora import (
     get_target_module,
 )
 
-import torch._dynamo
-torch._dynamo.config.suppress_errors = True
-torch._dynamo.config.verbose=True
-
 logger = logging.getLogger(__name__)
 # define a Handler which writes DEBUG messages or higher to the sys.stderr
 console = logging.StreamHandler()
