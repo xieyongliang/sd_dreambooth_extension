@@ -142,37 +142,31 @@ def train_dreambooth(api_endpoint, train_args, sd_models_s3uri, db_models_s3uri,
     if cmd_sd_models_path is not None:
         sd_models_dir = cmd_sd_models_path
 
-    try:
-        cmd_dreambooth_models_path = shared.cmd_opts.dreambooth_models_path
-    except:
-        cmd_dreambooth_models_path = None
-
-    db_model_dir = os.path.dirname(cmd_dreambooth_models_path) if cmd_dreambooth_models_path else paths.models_path
-    db_model_dir = os.path.join(db_model_dir, "dreambooth")
-
-    lora_model_dir = os.path.join(db_model_dir, db_model_name, "loras")
+    lora_model_dirs = [os.path.join(db_model_path, "loras"), os.path.join(shared.models_path, "Lora")]
 
     try:
         print('Uploading SD Models...')
         s3uri = f'{sd_models_s3uri}{username}/'
         if username == '':
             s3uri = s3uri[0 : s3uri.rfind('/')] + '/'
+        print(s3uri, sd_models_s3uri, username)
         if db_config.v2:
             shared.upload_s3files(
                 s3uri,
-                os.path.join(sd_models_dir, db_model_name, f'{db_model_name}_*.yaml')
+                os.path.join(sd_models_dir, f'{db_model_name}_*.yaml')
             )
         if db_config.save_safetensors:
             shared.upload_s3files(
                 s3uri,
-                os.path.join(sd_models_dir, db_model_name, f'{db_model_name}_*.safetensors')
+                os.path.join(sd_models_dir, f'{db_model_name}_*.safetensors')
             )
         else:
             shared.upload_s3files(
                 s3uri,
-                os.path.join(sd_models_dir, db_model_name, f'{db_model_name}_*.ckpt')
+                os.path.join(sd_models_dir, f'{db_model_name}_*.ckpt')
             )
 
+        print('db_model_path: ', db_model_path)
         print('Uploading DB Models...')
         if username == '':
             s3uri = f'{db_models_s3uri}{db_model_name}'
@@ -180,7 +174,7 @@ def train_dreambooth(api_endpoint, train_args, sd_models_s3uri, db_models_s3uri,
             s3uri = f'{db_models_s3uri}{username}/{db_model_name}'
         shared.upload_s3folder(
             s3uri,
-            os.path.join(db_model_dir, db_model_name)
+            db_model_path
         )
 
         if db_config.use_lora:
@@ -188,11 +182,17 @@ def train_dreambooth(api_endpoint, train_args, sd_models_s3uri, db_models_s3uri,
                 s3uri = f'{lora_models_s3uri}'
             else:
                 s3uri = f'{lora_models_s3uri}{username}/'
+            print('lora_model_dirs: ', lora_model_dirs)
             print('Uploading Lora Models...')
-            shared.upload_s3files(
-                s3uri,
-                os.path.join(lora_model_dir, f'{db_model_name}_*.pt')
-            )
+            for lora_model_dir in lora_model_dirs:
+                shared.upload_s3files(
+                    s3uri,
+                    os.path.join(lora_model_dir, f'{db_model_name}_*.pt')
+                )
+                shared.upload_s3files(
+                    s3uri,
+                    os.path.join(lora_model_dir, f'{db_model_name}_*.safetensors')
+                )
 
         os.makedirs(os.path.dirname("/opt/ml/model/Stable-diffusion/"), exist_ok=True)
 
