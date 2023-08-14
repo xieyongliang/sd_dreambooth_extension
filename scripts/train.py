@@ -146,9 +146,12 @@ def train_dreambooth(api_endpoint, train_args, sd_models_s3uri, db_models_s3uri,
 
     try:
         print('Uploading SD Models...')
-        s3uri = f'{sd_models_s3uri}{username}/'
+        s3uri = f'{sd_models_s3uri}{username}'
         if username == '':
             s3uri = s3uri[0 : s3uri.rfind('/')] + '/'
+        if not s3uri.endswith('/'):
+            s3uri = f'{s3uri}/'
+
         print(s3uri, sd_models_s3uri, username)
         if db_config.v2:
             shared.upload_s3files(
